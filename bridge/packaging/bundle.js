@@ -19,7 +19,7 @@ function add(file) {
   if (mods.has(file)) return mods.get(file).id;
   const m = { id: mods.size, code: '' };
   mods.set(file, m);
-  let code = fs.readFileSync(file, 'utf8').replace(/^#!.*\n/, '');
+  let code = fs.readFileSync(file, 'utf8').replace(/^#![^\n]*\n/, '');
   code = code.replace(/require\((['"])(\.{1,2}\/[^'"]+)\1\)/g, (_, q, req) => `__req(${add(resolve(file, req))})`);
   m.code = code;
   return m.id;
