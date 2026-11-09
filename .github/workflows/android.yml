@@ -118,13 +118,13 @@ jobs:
       - name: Smoke test
         run: |
           PTZ_NO_BROWSER=1 ./PTZ-Bridge.exe > bridge.log 2>&1 &
-          sleep 4
-          curl -fsS http://localhost:8080/api/status
-          curl -fsS -o /dev/null http://localhost:8080/admin
-          curl -fsS -o /dev/null http://localhost:8080/
-          curl -fsS -X POST http://localhost:8080/api/quit
-          sleep 1
-          cat bridge.log
+          ok=0
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:8080/api/status; then ok=1; break; fi; sleep 1; done
+          echo; echo "--- bridge.log ---"; cat bridge.log
+          [ $ok = 1 ]
+          curl -fsS -o /dev/null http://127.0.0.1:8080/admin
+          curl -fsS -o /dev/null http://127.0.0.1:8080/
+          curl -fsS -X POST http://127.0.0.1:8080/api/quit
       - uses: actions/upload-artifact@v4
         with:
           name: windows
