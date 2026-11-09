@@ -1,0 +1,8 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+bridge/config.json
+android/app/src/main/assets/www/index.html

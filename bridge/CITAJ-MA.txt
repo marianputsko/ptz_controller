@@ -1,0 +1,24 @@
+PTZ Bridge – program pre notebook pri réžii
+============================================
+
+Čo robí
+- Servuje PTZ ovládač pre tablet (stačí otvoriť adresu, ktorú program ukáže).
+- Pripojí sa na réžiu (Blackmagic ATEM, vMix alebo OSEE GoStream) a posiela tabletu tally.
+- Ukazuje stav: réžia, pripojené tablety.
+
+Prvé spustenie
+1. Nainštaluj Node.js (verzia LTS) z https://nodejs.org – len raz.
+2. Mac: dvojklik na "Spustit PTZ Bridge.command".
+   Ak macOS napíše, že súbor je od neznámeho vývojára: pravý klik → Otvoriť → Otvoriť.
+   Ak sa opýta, či môže "node" prijímať pripojenia zo siete: Povoliť.
+   Windows: dvojklik na "Spustit PTZ Bridge.bat". Pri otázke Windows Firewall povoľ súkromnú sieť.
+3. Otvorí sa okno s nastaveniami (http://localhost:8080/admin):
+   vyber Blackmagic ATEM, vMix alebo OSEE GoStream, zadaj IP adresu réžie (pri vMixe IP počítača s vMixom,
+   na tom istom počítači 127.0.0.1), Uložiť a pripojiť.
+4. Na tablete otvor adresu z časti "Otvor na tablete".
+   Na Macu funguje aj meno počítača, napr. http://marian-macbook.local:8080/
+   V tablete v nastaveniach vyber, ktorá kamera je na ktorom vstupe réžie (Cam 1–8).
+
+Program beží, kým je otvorené jeho okno. Zatvorením okna (alebo Ctrl+C) sa ukončí.
+
+Nastavenia sa ukladajú do súboru config.json vedľa programu.

@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>PTZ Beta</title>
+<style>
+/* Studio control surface: graphite body, backlit keys, tally owns red/green */
+:root{
+  --body:#171B20;      /* chassis */
+  --deck:#1F252C;      /* control deck */
+  --key:#2B333C;       /* keycap */
+  --key-hi:#36404B;    /* keycap top edge */
+  --ink:#DCE2E8;       /* legends */
+  --dim:#7E8996;       /* secondary legends */
+  --lamp:#F5AE3D;      /* backlit key / selection */
+  --lamp-ink:#2A1B05;
+  --frame:#F4F6F8;     /* active camera L */
+  --ina:#3A434D;       /* inactive camera */
+  --pvw:rgba(40,210,105,.34);--pvw-solid:#22C55E;
+  --pgm:rgba(255,45,40,.42);--pgm-solid:#FF3A30;
+  --r:14px;--fr:11px;--j:15px;
+}
+*{box-sizing:border-box;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--body);color:var(--ink);font:500 14px/1.25 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:manipulation;font-variant-numeric:tabular-nums}
+#app{height:100dvh;display:grid;grid-template-columns:repeat(var(--n,2),1fr);grid-template-rows:auto 1fr;gap:0 12px;
+  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+
+/* cameras */
+.cam{position:relative;border:3px solid var(--ina);border-radius:var(--r);background:#05070A;aspect-ratio:16/9;width:min(100%,calc(var(--camh,50dvh) * 16 / 9));justify-self:center;transition:border-color .15s}
+.cam:not(.notfirst){justify-self:start}.cam:not(.notlast){justify-self:end}
+.cam canvas{width:100%;height:100%;object-fit:contain;display:block;border-radius:calc(var(--r) - 3px)}
+.cam .tally{position:absolute;inset:0;border-radius:calc(var(--r) - 3px);pointer-events:none;transition:background .12s}
+.cam.pvw .tally{background:var(--pvw)}
+.cam.pgm .tally{background:var(--pgm)}
+.cam .lbl{position:absolute;left:12px;top:9px;font-size:17px;font-weight:700;letter-spacing:.01em;text-shadow:0 1px 4px #000c}
+.cam .st{position:absolute;right:12px;top:11px;font-size:12px;color:#C9D1D9;text-shadow:0 1px 3px #000c}
+.cam .tb{position:absolute;left:12px;bottom:10px;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;display:none;color:#fff}
+.cam.pvw .tb{display:block;background:var(--pvw-solid)}
+.cam.pgm .tb{display:block;background:var(--pgm-solid)}
+.cam:not(.active) .lbl{color:#AEB7C1}
+.cam.active{border-color:var(--frame);border-bottom-color:transparent;border-radius:var(--r) var(--r) 0 0;z-index:2}
+.cam.active canvas,.cam.active .tally{border-radius:calc(var(--r) - 3px) calc(var(--r) - 3px) 0 0}
+.cam.active::after{content:"";position:absolute;left:-3px;right:-3px;top:100%;height:var(--j);border:3px solid var(--frame);border-top:0;border-bottom:0;background:var(--deck)}
+
+.cam .zebra{position:absolute;inset:0;width:100%;height:100%;border-radius:calc(var(--r) - 3px);pointer-events:none;display:none}
+.cam .hist{position:absolute;right:10px;bottom:10px;width:150px;height:56px;border-radius:8px;pointer-events:none;display:none}
+body.showHist .cam .hist,body.showZebra .cam .zebra{display:block}
+.cam.active .zebra{border-radius:calc(var(--r) - 3px) calc(var(--r) - 3px) 0 0}
+@media (max-height:560px){.cam .hist{width:110px;height:40px;right:7px;bottom:7px}}
+
+/* rounded inner corner of the L */
+.cam .cl,.cam .cr{display:none;position:absolute;z-index:1;pointer-events:none;width:calc(var(--fr) + 3px);height:calc(var(--fr) + 3px);top:calc(100% + var(--j) - var(--fr) - 3px)}
+.cam.active.notlast .cr{display:block;left:100%;background:radial-gradient(circle at 100% 0,var(--body) var(--fr),var(--frame) var(--fr) calc(var(--fr) + 3px),var(--deck) calc(var(--fr) + 3px))}
+.cam.active.notfirst .cl{display:block;right:100%;background:radial-gradient(circle at 0 0,var(--body) var(--fr),var(--frame) var(--fr) calc(var(--fr) + 3px),var(--deck) calc(var(--fr) + 3px))}
+body.three .cam .lbl{font-size:15px}
+
+/* deck */
+#panel{grid-column:1/-1;margin-top:9px;border:3px solid var(--frame);border-radius:var(--r);background:var(--deck);display:flex;gap:16px;padding:14px;min-height:0;position:relative}
+#panel.first{border-top-left-radius:0}
+#panel.last{border-top-right-radius:0}
+#liveBan{position:absolute;left:50%;top:-1px;transform:translate(-50%,-50%);z-index:5;display:none;background:var(--pgm-solid);color:#fff;font-weight:700;font-size:13px;padding:4px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 0 16px rgba(255,58,48,.5)}
+#panel.isLive #liveBan{display:block}
+#panel.isLive .blk{opacity:.32;filter:grayscale(1)}
+#liveBan.flash{animation:lb .45s ease 2}
+@keyframes lb{50%{transform:translate(-50%,-50%) scale(1.15);box-shadow:0 0 28px rgba(255,58,48,.9)}}
+#guardRow{display:flex;gap:10px;align-items:center}
+#guardRow label{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:14px;flex:0 0 auto}
+#guardRow select{flex:1;min-width:0}
+@media (prefers-reduced-motion:reduce){#liveBan.flash{animation:none}}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sec{font-size:12px;color:var(--dim);display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-top:2px}
+.sec b{color:var(--ink);font-weight:700;font-size:13px}
+
+/* keys */
+button{font:inherit;color:var(--ink);background:linear-gradient(var(--key-hi),var(--key) 14%);border:1px solid #11151A;border-radius:10px;padding:10px 8px;box-shadow:0 2px 0 #0D1014;touch-action:manipulation;transition:background .08s,color .08s,transform .05s}
+button:active{transform:translateY(1px);box-shadow:0 1px 0 #0D1014}
+button.on{background:var(--lamp);color:var(--lamp-ink);border-color:#9C6614;box-shadow:0 0 14px rgba(245,174,61,.35),0 2px 0 #7A4F10}
+button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.row{display:flex;gap:8px}
+.row>button{flex:1}
+
+/* pan/tilt */
+#ctl{flex:0 0 26%;height:100%;align-items:center;container-type:size;gap:10px}
+#ctl #joy,#ctl #pad{width:min(100cqw,100cqh - 46px);aspect-ratio:1;flex:0 0 auto}
+#joy{position:relative;border-radius:50%;touch-action:none;
+  background:
+    radial-gradient(circle,transparent 0 31%,rgba(255,255,255,.05) 31% 31.6%,transparent 32%),
+    linear-gradient(transparent 49.6%,rgba(255,255,255,.07) 49.6% 50.4%,transparent 50.4%),
+    linear-gradient(90deg,transparent 49.6%,rgba(255,255,255,.07) 49.6% 50.4%,transparent 50.4%),
+    radial-gradient(circle at 50% 40%,#252C34,#15191E 70%);
+  box-shadow:inset 0 0 0 2px #0F1317,inset 0 6px 18px #0009,0 1px 0 #2E3740}
+#knob{position:absolute;width:30%;height:30%;left:35%;top:35%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 50% 35%,#FFFFFF,#C9CFD6 70%);box-shadow:0 6px 14px #000a,inset 0 -3px 6px #0003}
+#knob::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
+#pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;touch-action:none}
+#pad button{font-size:clamp(16px,4cqw,26px);padding:0;border-radius:12px}
+#pad button[data-d="0,0"]{color:var(--dim)}
+#ctl.btns #joy,#ctl:not(.btns) #pad{display:none}
+button.small{font-size:12px;padding:6px 10px;width:100%;color:var(--dim)}
+
+/* zoom rocker */
+#zoomCol{flex:0 0 76px;align-items:stretch}
+#zoomCol .rock{flex:1;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 2px 0 #0D1014;min-height:0}
+#zoomCol .rock button{flex:1;border-radius:0;box-shadow:none;font-size:15px;font-weight:700}
+#zoomCol .rock button+button{border-top:1px solid #11151A}
+#zbar{height:6px;border-radius:3px;background:#12161B;overflow:hidden}
+#zbar i{display:block;height:100%;width:0;background:var(--frame);transition:width .15s}
+#zv{text-align:center;font-size:18px;font-weight:700}
+
+/* right side */
+#mid{flex:1;min-height:0}
+.tabs{background:#14181D;border-radius:12px;padding:4px;gap:4px}
+.tabs button{padding:7px;font-size:13px;background:transparent;box-shadow:none;border-color:transparent;color:var(--dim)}
+.tabs button.on{background:var(--key);color:var(--ink);box-shadow:none;border-color:#11151A}
+.tp{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}
+.tp[hidden]{display:none}
+.ptz2{flex-direction:row;gap:16px}
+.pcol{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+.scol{flex:0 0 210px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.gw{flex:1;min-height:0;container-type:size}
+.grid3{--tw:min((100cqw - 16px) / 3,(100cqh - 8px) / 2 * 16 / 9);display:grid;grid-template-columns:repeat(3,var(--tw));grid-auto-rows:calc(var(--tw) * 9 / 16);gap:8px;justify-content:start;align-content:start}
+.pre{position:relative;min-height:0;padding:0;background:#12161B;background-size:cover;background-position:center;overflow:hidden;border:2px solid #2A323B;box-shadow:none}
+.pre.has{border-color:#3A444F}
+.pre span{position:absolute;left:6px;top:5px;min-width:22px;height:22px;padding:0 6px;border-radius:7px;background:#000a;font-size:13px;font-weight:700;display:grid;place-items:center}
+.pre:not(.has) span{left:50%;top:50%;transform:translate(-50%,-50%);background:none;font-size:20px;color:var(--dim)}
+.pre.saving{border-color:var(--lamp);box-shadow:0 0 16px rgba(245,174,61,.5)}
+input[type=range]{width:100%;accent-color:var(--frame);height:28px}
+#log{font-size:11px;color:var(--dim);min-height:1.2em;max-height:2.5em;overflow:hidden}
+.tabs #setBtn{flex:0 0 46px;font-size:17px;color:var(--ink);padding:4px}
+
+/* settings sheet */
+#settings{position:fixed;inset:0;background:#05070Acc;display:none;align-items:center;justify-content:center;z-index:10}
+#settings .box{background:var(--deck);border-radius:16px;width:min(980px,94vw);max-height:94dvh;display:flex;flex-direction:column;border:1px solid #2E3740;overflow:hidden}
+#settings .shead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #2A323B}
+#settings .shead h2{margin:0}
+#langRow{flex:0 0 auto}#langRow button{padding:6px 14px;font-size:13px}
+#settings .sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 22px;padding:16px 18px;overflow:auto;min-height:0}
+#settings .scolm{display:flex;flex-direction:column;gap:18px;min-width:0}
+#settings .sblk{display:flex;flex-direction:column;gap:10px}
+#settings .sblk>label:first-child{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.02em}
+#settings .sfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #2A323B;background:var(--deck)}
+#settings .sfoot .row{flex:0 0 auto}#settings .sfoot .row button{min-width:130px}
+#codecInfo{font-size:11px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:720px){#settings .sgrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-height:560px){#settings .shead{padding:8px 14px}#settings .sgrid{padding:10px 14px;gap:12px 16px}#settings .scolm{gap:12px}#settings .sfoot{padding:8px 14px}}
+#settings h2{margin:0 0 4px;font-size:17px}
+#settings label{font-size:13px;color:var(--dim)}
+#settings input[type=text]{font:inherit;background:#12161B;color:var(--ink);border:1px solid #2E3740;border-radius:10px;padding:10px;font-size:16px;user-select:text;-webkit-user-select:text}
+.row.two>div{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.row.two input,.row.two select{width:100%}
+#settings select{font:inherit;font-size:16px;background:#12161B;color:var(--ink);border:1px solid #2E3740;border-radius:10px;padding:10px}
+#tMode button{font-size:13px}
+#tFields{display:flex;flex-direction:column;gap:10px}
+#tFields[hidden]{display:none}
+#tdot{position:absolute;right:8px;bottom:8px;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;cursor:pointer}
+#tdot i{width:9px;height:9px;border-radius:50%;background:#555}
+#tdot.ok i{background:var(--pvw-solid);box-shadow:0 0 6px var(--pvw-solid)}
+#tdot.bad i{background:var(--pgm-solid)}
+#tdot.warn i{background:var(--lamp)}
+.stat{display:grid;grid-template-columns:12px 1fr;gap:3px 10px;background:#12161B;border:1px solid #2E3740;border-radius:12px;padding:12px}
+.stat i{width:10px;height:10px;border-radius:50%;margin-top:4px;background:#555}
+.stat i.ok{background:var(--pvw-solid);box-shadow:0 0 6px var(--pvw-solid)}.stat i.bad{background:var(--pgm-solid)}.stat i.warn{background:var(--lamp)}
+.stat b{font-size:14px;color:var(--ink)}.stat small{grid-column:2;font-size:12px;color:var(--dim);margin-bottom:6px}
+#bridgeNote{font-size:13px;color:var(--dim)}
+#swIpBox{display:flex;flex-direction:column;gap:6px}#swIpBox .err{color:var(--bad,#FF3A30);font-size:13px}
+label.chk{display:flex;align-items:center;gap:8px;color:var(--ink)!important;font-size:14px!important}
+[hidden]{display:none!important}
+#ip2Box,#urlBox{display:flex;flex-direction:column;gap:10px}
+#settings input[type=text]{width:100%}
+body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
+#rot{display:none;position:fixed;inset:0;background:var(--body);z-index:20;align-items:center;justify-content:center;font-size:18px;text-align:center;padding:20px}
+@media (orientation:portrait){#rot{display:flex}}
+#ctl{justify-content:center}
+@media (max-height:560px){
+  #app{gap:0 8px;padding:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+  :root{--camh:42dvh}
+  .cam .lbl{font-size:14px;left:9px;top:6px}
+  .cam .st{top:7px;right:9px;font-size:11px}
+  #panel{padding:8px;gap:10px;margin-top:7px}
+  :root{--j:13px;--fr:9px}
+  button{padding:6px;font-size:13px}
+  .col,.tp,.pcol,.scol{gap:5px}
+  .scol{flex-basis:170px;overflow-y:auto}
+  .sec{font-size:11px;margin:0}
+  .tabs{padding:2px}.tabs button{padding:4px;font-size:12px}
+  #zoomCol{flex-basis:60px}#zv{font-size:15px}
+  #ctl #joy,#ctl #pad{width:min(100cqw,100cqh - 36px)}
+  #pad{gap:4px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="cam active" data-i="0"><canvas></canvas><canvas class="zebra" width="256" height="144"></canvas><div class="tally"></div><div class="lbl" data-i18n="cam" data-n="1">Kamera 1</div><canvas class="hist" width="300" height="112"></canvas><div class="tb"></div><div class="st">–</div><i class="cl"></i><i class="cr"></i></div>
+  <div class="cam" data-i="1"><canvas></canvas><canvas class="zebra" width="256" height="144"></canvas><div class="tally"></div><div class="lbl" data-i18n="cam" data-n="2">Kamera 2</div><canvas class="hist" width="300" height="112"></canvas><div class="tb"></div><div class="st">–</div><i class="cl"></i><i class="cr"></i></div>
+  <div class="cam" data-i="2"><canvas></canvas><canvas class="zebra" width="256" height="144"></canvas><div class="tally"></div><div class="lbl" data-i18n="cam" data-n="3">Kamera 3</div><canvas class="hist" width="300" height="112"></canvas><div class="tb"></div><div class="st">–</div><i class="cl"></i><i class="cr"></i></div>
+  <div id="panel" class="l0">
+    <div id="liveBan" role="status"></div>
+    <div id="ctl" class="col">
+      <div id="joy"><div id="knob"></div></div>
+      <div id="pad">
+        <button data-d="-1,-1">↖</button><button data-d="0,-1">↑</button><button data-d="1,-1">↗</button>
+        <button data-d="-1,0">←</button><button data-d="0,0">■</button><button data-d="1,0">→</button>
+        <button data-d="-1,1">↙</button><button data-d="0,1">↓</button><button data-d="1,1">↘</button>
+      </div>
+      <button id="ctlToggle" class="small"></button>
+    </div>
+    <div id="zoomCol" class="col">
+      <div id="zv">1.0×</div>
+      <div id="zbar"><i></i></div>
+      <div class="rock"><button id="zin">Tele</button><button id="zout">Wide</button></div>
+    </div>
+    <div id="mid" class="col">
+      <div class="row tabs"><button class="tab on" data-t="ptz" data-i18n="tabCtl">Ovládanie</button><button class="tab" data-t="img" data-i18n="tabImg">Obraz</button><button id="setBtn" data-i18n-title="settings" aria-label="Nastavenia" title="Nastavenia">⚙︎</button></div>
+      <div class="tp ptz2" data-t="ptz">
+        <div class="pcol">
+          <div class="sec"><span data-i18n="presets">Presety</span> <span data-i18n="presetsHint">podrž pre uloženie</span></div>
+          <div class="gw"><div class="grid3">
+            <button class="pre" data-p="0"><span>1</span></button><button class="pre" data-p="1"><span>2</span></button><button class="pre" data-p="2"><span>3</span></button>
+            <button class="pre" data-p="3"><span>4</span></button><button class="pre" data-p="4"><span>5</span></button><button class="pre" data-p="5"><span>6</span></button>
+          </div></div>
+        </div>
+        <div class="scol">
+          <div class="sec"><span data-i18n="exposure">Expozícia</span> <b id="evv">–</b></div>
+          <button id="aeT">Auto expozícia</button>
+          <div class="row"><button id="evm">− EV</button><button id="evp">+ EV</button></div>
+          <div class="sec" data-i18n="tracking">Sledovanie</div>
+          <div class="row"><button class="ai" data-m="humanTrackingSingleMode" data-i18n="trk1">1 osoba</button><button class="ai" data-m="humanTrackingGroupMode" data-i18n="trkG">Skupina</button></div>
+          <button class="ai" data-m="none" data-i18n="trkOff">Vypnúť sledovanie</button>
+          <div class="sec"><span data-i18n="focus">Ostrenie</span> <b id="fv">–</b></div>
+          <div class="row"><button class="fm" data-f="afc">AF</button><button class="fm" data-f="mf">MF</button><button id="fOne" data-i18n="fOne" data-i18n-title="fOneTitle" title="Zaostriť raz a podržať">Zaostriť</button></div>
+          <div class="row"><button id="fm1" data-i18n="near">− Blízko</button><button id="fp1" data-i18n="far">Ďaleko +</button></div>
+          <div class="sec"><span data-i18n="speed">Rýchlosť pohybu</span> <b id="sv"></b></div>
+          <input id="speed" type="range" min="5" max="100" value="40">
+        </div>
+      </div>
+      <div class="tp" data-t="img" hidden>
+        <div class="sec"><span data-i18n="wb">Vyváženie bielej</span> <b id="wbv">–</b></div>
+        <div class="row"><button class="wbm" data-m="0">Auto</button><button class="wbk" data-k="3200">3200K</button><button class="wbk" data-k="4600">4600K</button><button class="wbk" data-k="5600">5600K</button></div>
+        <div class="row"><button id="wbm" data-i18n="warmer">Teplejšie −100K</button><button id="wbp" data-i18n="cooler">Studenšie +100K</button></div>
+      </div>
+      <div id="log"></div>
+    </div>
+    <div id="tdot" role="button" tabindex="0"><i></i><span>–</span></div>
+  </div>
+</div>
+<div id="settings"><div class="box">
+  <div class="shead"><h2 data-i18n="settings">Nastavenia</h2>
+    <div class="row" id="langRow" role="group" aria-label="Jazyk / Language"><button type="button" data-l="sk">SK</button><button type="button" data-l="en">EN</button></div></div>
+  <div class="sgrid">
+    <div class="scolm">
+      <section class="sblk"><label data-i18n="status">Stav pripojenia</label>
+        <div class="stat" id="stat"></div></section>
+      <section class="sblk"><label data-i18n="cameras">Kamery</label>
+        <div class="row two"><div><label data-i18n="ipCam" data-n="1">IP kamery 1</label><input type="text" id="ip0" inputmode="decimal"></div><div><label data-i18n="ipCam" data-n="2">IP kamery 2</label><input type="text" id="ip1" inputmode="decimal"></div></div>
+        <label class="chk"><input type="checkbox" id="three"> <span data-i18n="useThird">Používať tretiu kameru</span></label>
+        <div id="ip2Box"><label data-i18n="ipCam" data-n="3">IP kamery 3</label><input type="text" id="ip2" inputmode="decimal"></div>
+        <label class="chk"><input type="checkbox" id="invPan"> <span data-i18n="invPan">Obrátiť smer pan (vľavo/vpravo)</span></label>
+        <label class="chk"><input type="checkbox" id="invTilt"> <span data-i18n="invTilt">Obrátiť smer tilt (hore/dole)</span></label></section>
+    </div>
+    <div class="scolm">
+      <section class="sblk"><label data-i18n="tallySig">Tally signalizácia</label>
+        <div class="row" id="tMode"><button data-m="none" data-i18n="tNone">Bez tally</button><button data-m="atem">Blackmagic ATEM</button><button data-m="vmix">vMix</button><button data-m="osee">OSEE GoStream</button></div>
+        <div id="tFields">
+          <div id="bridgeNote" hidden data-i18n="bridgeNote">Tally sa berie z programu PTZ Bridge, z ktorého je otvorená táto stránka. Typ a IP réžie nastavíš v ňom.</div>
+          <div id="swIpBox" hidden><label id="swIpLbl" for="tSwIp">IP adresa réžie</label><input type="text" id="tSwIp" inputmode="decimal" placeholder="192.168.10.240"><div id="swIpErr" class="err" hidden></div></div>
+          <div id="urlBox"><label data-i18n="bridgeAddr">Adresa počítača s programom PTZ Bridge</label><input type="text" id="tUrl" inputmode="url" placeholder="192.168.10.50:8080"></div>
+          <div class="row two"><div><label data-i18n="camIn" data-n="1">Kamera 1 je v réžii</label><select id="tIn0"></select></div><div><label data-i18n="camIn" data-n="2">Kamera 2 je v réžii</label><select id="tIn1"></select></div><div class="c3"><label data-i18n="camIn" data-n="3">Kamera 3 je v réžii</label><select id="tIn2"></select></div></div>
+        </div></section>
+      <section class="sblk"><label data-i18n="guard">Ochrana LIVE kamery</label>
+        <div id="guardRow"><label class="chk"><input type="checkbox" id="gOn"> <span data-i18n="gOn">Zapnúť ochranu</span></label>
+          <select id="gMode"><option value="warn" data-i18n="gWarn">Upozorniť, že kamera je LIVE</option><option value="nopre" data-i18n="gNopre">Vypnúť presety pri LIVE</option><option value="lock" data-i18n="gLock">Úplný zámok</option></select></div></section>
+      <section class="sblk"><label data-i18n="expTools">Kontrola expozície</label>
+        <div class="row"><button id="histT">Histogram</button><button id="zebT">Zebra</button></div>
+        <div class="row" id="zebLv"><button data-z="75">75 %</button><button data-z="85">85 %</button><button data-z="90">90 %</button><button data-z="95">95 %</button></div></section>
+    </div>
+  </div>
+  <div class="sfoot"><div id="codecInfo"></div><div class="row"><button id="closeSet" data-i18n="close">Zavrieť</button><button id="saveSet" class="on" data-i18n="save">Uložiť a pripojiť</button></div></div>
+</div></div>
+<div id="rot" data-i18n="rotate">Otoč zariadenie na šírku</div>
+
+<script>
+// ---------- storage ----------
+const store={get(k,d){try{const v=localStorage.getItem('ptz_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('ptz_'+k,JSON.stringify(v))}catch(e){}}};
+const cfg={three:store.get('three',false),ips:store.get('ips',['192.168.10.171','192.168.10.172','192.168.10.173']),invPan:store.get('invPan',false),invTilt:store.get('invTilt',false),speed:store.get('speed',40),tally:store.get('tally',{mode:'none',bridge:'',inputs:[1,2,3]})};
+delete cfg.tally.url;if(cfg.tally.inputs.length<3)cfg.tally.inputs[2]=3;if(cfg.tally.bridge===undefined)cfg.tally.bridge='';
+if(!cfg.tally.mode)cfg.tally.mode=cfg.tally.on?'atem':'none';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+if(cfg.ips.length<3)cfg.ips[2]='192.168.10.173';
+const NCAM=cfg.three?3:2;document.body.classList.toggle('three',cfg.three);document.documentElement.style.setProperty('--n',NCAM);
+if(!cfg.three)$('.cam[data-i="2"]').remove();
+// ---------- language (SK / EN) ----------
+const I18N={
+ sk:{cam:'Kamera {n}',toButtons:'Prepnúť na tlačidlá',toJoy:'Prepnúť na joystick',tabCtl:'Ovládanie',tabImg:'Obraz',settings:'Nastavenia',
+  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto expozícia',aeMan:'Manuálna expozícia',
+  tracking:'Sledovanie',trk1:'1 osoba',trkG:'Skupina',trkOff:'Vypnúť sledovanie',focus:'Ostrenie',fOne:'Zaostriť',fOneTitle:'Zaostriť raz a podržať',
+  near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
+  wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',
+  useThird:'Používať tretiu kameru',invPan:'Obrátiť smer pan (vľavo/vpravo)',invTilt:'Obrátiť smer tilt (hore/dole)',guard:'Ochrana LIVE kamery',gOn:'Zapnúť ochranu',
+  gWarn:'Upozorniť, že kamera je LIVE',gNopre:'Vypnúť presety pri LIVE',gLock:'Úplný zámok',expTools:'Kontrola expozície',tallySig:'Tally signalizácia',tNone:'Bez tally',
+  bridgeNote:'Tally sa berie z programu PTZ Bridge, z ktorého je otvorená táto stránka. Typ a IP réžie nastavíš v ňom.',bridgeAddr:'Adresa počítača s programom PTZ Bridge',swIp:'IP adresa réžie',swIpVmix:'IP adresa počítača s vMixom',swIpBad:'Zadaj platnú IP adresu réžie, napríklad 192.168.10.240.',
+  camIn:'Kamera {n} je v réžii',vmixIn:'vMix vstup {n}',save:'Uložiť a pripojiť',close:'Zavrieť',rotate:'Otoč zariadenie na šírku',
+  codec:'Kodek: {n}',codecNo:'H.265 v tomto prehliadači nie je podporované',
+  liveW:'Kamera {n} je LIVE',liveP:'Kamera {n} je LIVE · presety vypnuté',liveL:'Kamera {n} je LIVE · ovládanie zamknuté',
+  stConn:'pripájam…',stWait:'čakám na obraz',stErr:'chyba spojenia',stRetry:'odpojené – skúšam znova',stNoCodec:'H.265 nepodporované',stLocal:'obraz len cez localhost',
+  presetSaved:'Kamera {n}: preset {p} uložený',httpsWarn:'Pozor: stránka beží cez https – prehliadač zablokuje spojenie s kamerami. Otvor ju cez http.',noWebcodecs:'Tento prehliadač nevie dekódovať H.265 cez WebCodecs.',
+  rBridgeOk:'Program PTZ Bridge beží',rBridgeNo:'Program PTZ Bridge sa nenašiel',rBridgeNoSame:'Skontroluj, či program na notebooku stále beží.',rBridgeNoAddr:'Na {n} neodpovedá. Spusti program na notebooku a nižšie zadaj adresu, ktorú ukazuje.',
+  rTallyOff:'Tally vypnuté',rTallyOffD:'Zapneš ho nižšie v časti Tally signalizácia.',rSwWait:'Zisťujem stav réžie…',rSwMismatch:'Réžia je {n}, v tablete je zvolené {p}',rSwMismatchD:'Zmeň typ réžie nižšie, aby sedel výber kamier.',
+  rSwNone:'Réžia nie je nastavená',rSwNoneD:'Vyber typ a IP réžie v programe PTZ Bridge na notebooku.',rSwOk:'Réžia {n} pripojená',rSwBad:'Réžia nepripojená',rSwBadD:'Skontroluj IP adresu réžie a či je v rovnakej sieti.',
+  rCamDown:'Kamera {n} neodpovedá',rCamDownD:'Na {p} nikto neodpovedá. Skontroluj napájanie, kábel a IP adresu.',rCamOk:'Kamera {n} pripojená',rCamOkD:'{p} · obraz {f} fps',
+  rCamNoVid:'Kamera {n}: ovládanie ide, obraz nie',rCamNoVidCodec:'Tento prehliadač nevie zobraziť obraz (H.265).',rCamNoVidSecure:'Prehliadač púšťa dekodér videa len na zabezpečenej adrese. Na tomto počítači otvor http://localhost:8080.',rCamNoVidAndroid:'Chrome púšťa dekodér videa len na zabezpečenej adrese. Otvor chrome://flags/#unsafely-treat-insecure-origin-as-secure, vlož {n}, zapni Enabled a daj Relaunch.',
+  rCamNoVidBusy:'Kamera púšťa náhľad len jednému zariadeniu – zatvor jej Web UI alebo iný tablet.',rCamNoApi:'Kamera {n}: obraz ide, ovládanie nie',rCamNoApiD:'Ovládanie na {p} neodpovedá.',rCamConn:'Kamera {n}: pripájam…',allOk:'Všetko pripojené'},
+ en:{cam:'Camera {n}',toButtons:'Switch to buttons',toJoy:'Switch to joystick',tabCtl:'Control',tabImg:'Image',settings:'Settings',
+  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto exposure',aeMan:'Manual exposure',
+  tracking:'Tracking',trk1:'1 person',trkG:'Group',trkOff:'Stop tracking',focus:'Focus',fOne:'Focus once',fOneTitle:'Focus once and hold',
+  near:'− Near',far:'Far +',afOnce:'AF once',speed:'Movement speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
+  wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',
+  useThird:'Use a third camera',invPan:'Invert pan (left/right)',invTilt:'Invert tilt (up/down)',guard:'On-air protection',gOn:'Enable protection',
+  gWarn:'Warn that the camera is LIVE',gNopre:'Disable presets while LIVE',gLock:'Full lock',expTools:'Exposure tools',tallySig:'Tally',tNone:'No tally',
+  bridgeNote:'Tally comes from PTZ Bridge, which serves this page. Set the switcher type and IP there.',bridgeAddr:'Address of the computer running PTZ Bridge',swIp:'Switcher IP address',swIpVmix:'IP address of the vMix computer',swIpBad:'Enter a valid switcher IP address, for example 192.168.10.240.',
+  camIn:'Camera {n} switcher input',vmixIn:'vMix input {n}',save:'Save and connect',close:'Close',rotate:'Rotate the device to landscape',
+  codec:'Codec: {n}',codecNo:'H.265 is not supported in this browser',
+  liveW:'Camera {n} is LIVE',liveP:'Camera {n} is LIVE · presets disabled',liveL:'Camera {n} is LIVE · controls locked',
+  stConn:'connecting…',stWait:'waiting for video',stErr:'connection error',stRetry:'disconnected – retrying',stNoCodec:'H.265 not supported',stLocal:'video on localhost only',
+  presetSaved:'Camera {n}: preset {p} saved',httpsWarn:'This page runs over https, so the browser blocks the cameras. Open it over http.',noWebcodecs:'This browser cannot decode H.265 with WebCodecs.',
+  rBridgeOk:'PTZ Bridge is running',rBridgeNo:'PTZ Bridge not found',rBridgeNoSame:'Check that the program is still running on the laptop.',rBridgeNoAddr:'No answer from {n}. Start the program on the laptop and enter the address it shows below.',
+  rTallyOff:'Tally off',rTallyOffD:'Turn it on below under Tally.',rSwWait:'Checking the switcher…',rSwMismatch:'The switcher is {n}, the tablet is set to {p}',rSwMismatchD:'Change the switcher type below so the camera inputs match.',
+  rSwNone:'No switcher set up',rSwNoneD:'Choose the switcher type and IP in PTZ Bridge on the laptop.',rSwOk:'Switcher {n} connected',rSwBad:'Switcher not connected',rSwBadD:'Check the switcher IP address and that it is on the same network.',
+  rCamDown:'Camera {n} not responding',rCamDownD:'Nothing answers at {p}. Check power, cable and IP address.',rCamOk:'Camera {n} connected',rCamOkD:'{p} · video {f} fps',
+  rCamNoVid:'Camera {n}: control works, no video',rCamNoVidCodec:'This browser cannot show the video (H.265).',rCamNoVidSecure:'The browser allows the video decoder only on a secure address. On this computer, open http://localhost:8080.',rCamNoVidAndroid:'Chrome allows the video decoder only on a secure address. Open chrome://flags/#unsafely-treat-insecure-origin-as-secure, add {n}, set Enabled and tap Relaunch.',
+  rCamNoVidBusy:'The camera streams to one device only – close its Web UI or the other tablet.',rCamNoApi:'Camera {n}: video works, no control',rCamNoApiD:'Control at {p} is not answering.',rCamConn:'Camera {n}: connecting…',allOk:'All connected'}
+};
+let LANG=(()=>{const v=store.get('lang',null);if(v==='sk'||v==='en')return v;const n=(navigator.language||'').slice(0,2);return n==='sk'||n==='cs'?'sk':'en'})();
+function tr(k,v){let x=(I18N[LANG]&&I18N[LANG][k]);if(x===undefined)x=I18N.sk[k];if(x===undefined)return k;if(typeof x!=='string')return x;
+  return v?x.replace(/\{(\w+)\}/g,(m,a)=>v[a]!==undefined?v[a]:m):x}
+function applyI18n(){document.documentElement.lang=LANG;
+  $$('[data-i18n]').forEach(el=>{el.textContent=tr(el.dataset.i18n,{n:el.dataset.n})});
+  $$('[data-i18n-title]').forEach(el=>{el.title=tr(el.dataset.i18nTitle);el.setAttribute('aria-label',el.title)});
+  $$('#langRow button').forEach(b=>b.classList.toggle('on',b.dataset.l===LANG))}
+function setLang(l){LANG=l;store.set('lang',l);applyI18n();
+  if(typeof setCtlMode==='function')setCtlMode(ctl.classList.contains('btns'));
+  if(typeof renderImg==='function')renderImg();if(typeof renderGuard==='function')renderGuard();if(typeof renderStatus==='function')renderStatus();
+  if($('#settings').style.display==='flex')$('#codecInfo').textContent=tr('codec',{n:CODEC||tr('codecNo')})}
+$$('#langRow button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
+applyI18n();
+
+const logEl=$('#log');function log(m){logEl.textContent=m;console.log(m)}
+
+// ---------- camera HTTP API ----------
+async function api(i,method,path,body){
+  const ip=cfg.ips[i];
+  try{
+    const r=await fetch(`http://${ip}/camera/sdk/${path}`,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    const j=await r.json().catch(()=>({}));health[i].api=true;health[i].apiT=Date.now();
+    if(!r.ok||(j.code&&j.code!==200))log(`CAM${i+1} ${path}: ${r.status} ${JSON.stringify(j)}`);
+    return j;
+  }catch(e){health[i].api=false;log(`CAM${i+1} ${path}: ${e.message}`)}
+}
+const health=Array.from({length:3},()=>({api:null,apiT:0}));
+async function pingCam(i){
+  const ac=new AbortController();const to=setTimeout(()=>ac.abort(),2000);
+  try{const r=await fetch(`http://${cfg.ips[i]}/camera/sdk/range`,{cache:'no-store',signal:ac.signal});health[i].api=r.ok;if(r.ok)health[i].apiT=Date.now()}
+  catch(e){health[i].api=false}finally{clearTimeout(to)}
+}
+
+// ---------- video (WebSocket :9001, H.265 in OBSBOT wrapper) ----------
+let CODEC=null;
+async function pickCodec(){
+  if(!('VideoDecoder' in window))return null;
+  for(const c of ['hvc1.1.6.L153.B0','hev1.1.6.L153.B0','hvc1.1.6.L150.B0','hvc1.1.6.L123.B0','hvc1.2.4.L153.B0']){
+    try{const s=await VideoDecoder.isConfigSupported({codec:c});if(s.supported)return c}catch(e){}
+  }return null;
+}
+function findStart(u,from){for(let i=from;i<u.length-4;i++){if(u[i]===0&&u[i+1]===0&&(u[i+2]===1||(u[i+2]===0&&u[i+3]===1)))return i}return -1}
+function extract(u){
+  if(u.length<32)return null;
+  const L=(u[12]|(u[13]<<8)|(u[14]<<16)|(u[15]<<24))>>>0;
+  let s=(L>0&&L<=u.length)?u.length-L:-1;
+  if(s<0||findStart(u,s)!==s)s=findStart(u,0);
+  return s<0?null:u.subarray(s);
+}
+function isKey(p){
+  let i=0;
+  while((i=findStart(p,i))>=0){const off=p[i+2]===1?3:4;const t=(p[i+off]>>1)&63;if((t>=16&&t<=21)||t===32)return true;i+=off;if(i>400)break}
+  return false;
+}
+class CamView{
+  constructor(i,el){this.i=i;this.lastFrame=0;this.fps=0;this.el=el;this.cv=el.querySelector('canvas');this.ctx=this.cv.getContext('2d');this.st=el.querySelector('.st');this.hctx=el.querySelector('.hist').getContext('2d');this.zctx=el.querySelector('.zebra').getContext('2d');this.ws=null;this.dec=null;this.wait=true;this.ts=0;this.frames=0;this.retry=null;this.alive=0;
+    setInterval(()=>{if(this.ws&&this.ws.readyState===1){this.fps=this.frames;this.st.textContent=`${this.frames} fps`;this.frames=0}},1000);}
+  status(t){this.st.textContent=t}
+  makeDecoder(){
+    if(this.dec&&this.dec.state!=='closed')try{this.dec.close()}catch(e){}
+    this.dec=new VideoDecoder({output:f=>{if(this.cv.width!==f.displayWidth){this.cv.width=f.displayWidth;this.cv.height=f.displayHeight}this.ctx.drawImage(f,0,0);f.close();this.frames++;this.lastFrame=Date.now();this.cv.dataset.live=1},
+      error:e=>{log(`CAM${this.i+1} decoder: ${e.message}`);this.wait=true;setTimeout(()=>this.makeDecoder(),100)}});
+    this.dec.configure({codec:CODEC,optimizeForLatency:true});this.wait=true;
+  }
+  connect(){
+    clearTimeout(this.retry);
+    if(this.ws){this.ws.onclose=null;try{this.ws.close()}catch(e){}}
+    if(!CODEC){this.status(window.isSecureContext?tr('stNoCodec'):tr('stLocal'));return}
+    this.makeDecoder();this.status(tr('stConn'));
+    const ws=new WebSocket(`ws://${cfg.ips[this.i]}:9001`);ws.binaryType='arraybuffer';this.ws=ws;
+    ws.onopen=()=>this.status(tr('stWait'));
+    ws.onmessage=e=>{
+      if(typeof e.data==='string')return;
+      const p=extract(new Uint8Array(e.data));if(!p)return;
+      const key=isKey(p);
+      if(this.wait){if(!key)return;this.wait=false}
+      if(this.dec.state!=='configured')return;
+      if(this.dec.decodeQueueSize>4){this.wait=true;return}
+      this.ts+=33333;
+      try{this.dec.decode(new EncodedVideoChunk({type:key?'key':'delta',timestamp:this.ts,data:p}))}catch(err){this.wait=true}
+    };
+    ws.onerror=()=>this.status(tr('stErr'));
+    ws.onclose=()=>{this.status(tr('stRetry'));this.retry=setTimeout(()=>this.connect(),2000)};
+  }
+}
+
+// ---------- exposure tools: histogram + zebra ----------
+const anaCv=document.createElement('canvas');anaCv.width=256;anaCv.height=144;
+const anaCtx=anaCv.getContext('2d',{willReadFrequently:true});
+let ZEBRA=230; // luma threshold, set from settings
+let zPhase=0;
+function analyze(v){
+  const hOn=document.body.classList.contains('showHist'),zOn=document.body.classList.contains('showZebra');
+  if((!hOn&&!zOn)||!v.cv.dataset.live||!v.cv.width)return;
+  const W=anaCv.width,H=anaCv.height;anaCtx.drawImage(v.cv,0,0,W,H);
+  const d=anaCtx.getImageData(0,0,W,H).data;const bins=new Uint32Array(64);
+  let zImg=null,zd=null;if(zOn){zImg=v.zctx.createImageData(W,H);zd=zImg.data}
+  for(let p=0,k=0;p<d.length;p+=4,k++){
+    const y=(54*d[p]+183*d[p+1]+19*d[p+2])>>8;bins[y>>2]++;
+    if(zd&&y>=ZEBRA){const x=k%W,yy=(k/W)|0;if(((x+yy+zPhase)&7)<3){zd[p]=255;zd[p+1]=255;zd[p+2]=255;zd[p+3]=200}else{zd[p+3]=110}}
+  }
+  if(zd)v.zctx.putImageData(zImg,0,0);
+  if(hOn)drawHist(v,bins,W*H);
+}
+function drawHist(v,bins,total){
+  const c=v.hctx,w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);
+  c.fillStyle='rgba(5,7,10,.78)';c.beginPath();c.roundRect(0,0,w,h,14);c.fill();c.fillStyle='rgba(255,255,255,.12)';for(const q of [.25,.5,.75])c.fillRect(8+q*(w-16),8,1,h-16);
+  let max=0;for(let i=1;i<63;i++)max=Math.max(max,bins[i]);max=Math.max(max,1);
+  const pad=8,bw=(w-pad*2)/64;c.fillStyle='rgba(244,246,248,.85)';
+  for(let i=0;i<64;i++){const bh=Math.min(1,bins[i]/max)*(h-pad*2);c.fillRect(pad+i*bw,h-pad-bh,Math.ceil(bw),bh)}
+  // clipping warnings: >1.5 % of pixels in the extreme bin
+  const lo=bins[0]/total,hi=bins[63]/total;
+  if(hi>0.015){c.fillStyle='#FF3A30';c.fillRect(w-pad-4,pad,4,h-pad*2)}
+  if(lo>0.015){c.fillStyle='#4D8DFF';c.fillRect(pad,pad,4,h-pad*2)}
+}
+setInterval(()=>{zPhase=(zPhase+1)&7;views.forEach(analyze)},200);
+
+// ---------- UI ----------
+let active=0;
+const camEls=$$('.cam');camEls.forEach((el,i)=>{el.classList.toggle('notfirst',i>0);el.classList.toggle('notlast',i<camEls.length-1)});const views=camEls.map((el,i)=>new CamView(i,el));
+function setActive(i){
+  if(i!==active)stopMove();
+  active=i;camEls.forEach((el,k)=>el.classList.toggle('active',k===i));
+  $('#panel').className='l'+i+(i===0?' first':'')+(i===camEls.length-1?' last':'');if(typeof renderGuard==='function')renderGuard();updateZoomLabel();renderImg();loadImg(i);renderPresets();
+}
+camEls.forEach((el,i)=>el.addEventListener('click',()=>setActive(i)));
+
+// speed
+const sp=$('#speed');sp.value=cfg.speed;const sv=$('#sv');sv.textContent=sp.value;
+sp.oninput=()=>{cfg.speed=+sp.value;sv.textContent=sp.value;store.set('speed',cfg.speed)};
+
+// joystick
+const joy=$('#joy'),knob=$('#knob');let jId=null,jx=0,jy=0,lastSent='',sendT=null,moving=false;
+function joyPos(e){const r=joy.getBoundingClientRect();let x=(e.clientX-r.left)/r.width*2-1,y=(e.clientY-r.top)/r.height*2-1;const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}return[x,y]}
+function drawKnob(){knob.style.transform=`translate(${jx*100}%,${jy*100}%)`}
+function sendMove(){
+  const dz=0.12;let x=Math.abs(jx)<dz?0:jx,y=Math.abs(jy)<dz?0:jy;
+  const s=cfg.speed;
+  const yaw=Math.round(x*s*(cfg.invPan?-1:1)), pitch=Math.round(y*s*(cfg.invTilt?-1:1));
+  const k=yaw+','+pitch;if(k===lastSent)return;lastSent=k;
+  if(yaw===0&&pitch===0){api(active,'POST','ptz/gimbalcontrol',{pitch:0,yaw:0,roll:0,stop:true});moving=false;return}
+  moving=true;api(active,'POST','ptz/gimbalcontrol',{pitch,yaw,roll:0,stop:false});
+}
+function stopMove(){clearInterval(sendT);sendT=null;jx=jy=0;drawKnob();lastSent='';if(moving){moving=false}
+  api(active,'POST','ptz/gimbalcontrol',{pitch:0,yaw:0,roll:0,stop:true});}
+joy.addEventListener('pointerdown',e=>{jId=e.pointerId;joy.setPointerCapture(jId);[jx,jy]=joyPos(e);drawKnob();sendMove();sendT=setInterval(sendMove,120)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId!==jId)return;[jx,jy]=joyPos(e);drawKnob()});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joy.addEventListener(ev,e=>{if(e.pointerId!==jId)return;jId=null;stopMove()}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&jId!==null){jId=null;stopMove()}});
+
+// zoom (hold buttons)
+const zoom=[1,1,1];let zT=null;
+function updateZoomLabel(){$('#zv').textContent=zoom[active].toFixed(1)+'×';$('#zbar i').style.width=((zoom[active]-1)/11*100)+'%'}
+function zoomStep(d){zoom[active]=Math.min(12,Math.max(1,+(zoom[active]+d).toFixed(2)));updateZoomLabel();api(active,'PUT','ptz/zoom',{ratio:zoom[active],speed:10})}
+function holdZoom(btn,d){
+  const start=e=>{e.preventDefault();zoomStep(d);clearInterval(zT);zT=setInterval(()=>zoomStep(d),180)};
+  const end=()=>{clearInterval(zT);zT=null};
+  btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
+}
+holdZoom($('#zin'),0.3);holdZoom($('#zout'),-0.3);
+
+// presets: tap = call, hold 1s = save (+ thumbnail from preview)
+const thumbKey=(i,id)=>'thumb_'+cfg.ips[i]+'_'+id;
+function saveThumb(i,id){
+  const cv=views[i].cv;if(!cv.width||!views[i].frames&&!cv.dataset.live)return;
+  const t=document.createElement('canvas');t.width=240;t.height=135;
+  t.getContext('2d').drawImage(cv,0,0,t.width,t.height);
+  try{store.set(thumbKey(i,id),t.toDataURL('image/jpeg',0.7))}catch(e){}
+}
+function renderPresets(){$$('.pre').forEach(b=>{const d=store.get(thumbKey(active,+b.dataset.p),null);
+  b.style.backgroundImage=d?`url(${d})`:'';b.classList.toggle('has',!!d)})}
+$$('.pre').forEach(b=>{let t=null,saved=false;const id=+b.dataset.p;
+  b.addEventListener('pointerdown',()=>{saved=false;t=setTimeout(async()=>{saved=true;b.classList.add('saving');
+    const i=active;saveThumb(i,id);renderPresets();
+    await api(i,'PUT','ptz/preset',{operation:'set',id,name:btoa('Preset '+(id+1))});log(tr('presetSaved',{n:i+1,p:id+1}));
+    setTimeout(()=>b.classList.remove('saving'),600)},1000)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(t)));
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+  b.addEventListener('click',()=>{if(saved)return;api(active,'PUT','ptz/preset',{operation:'call',id})});
+});
+
+// AI tracking
+$$('.ai').forEach(b=>b.addEventListener('click',async()=>{await api(active,'PUT','ai/workmode',{mode:b.dataset.m});$$('.ai').forEach(x=>x.classList.toggle('on',x===b&&b.dataset.m!=='none'))}));
+
+// joystick / 9 buttons toggle
+const ctl=$('#ctl');
+function setCtlMode(b){ctl.classList.toggle('btns',b);$('#ctlToggle').textContent=b?tr('toJoy'):tr('toButtons');store.set('btns',b)}
+setCtlMode(store.get('btns',false));
+$('#ctlToggle').onclick=()=>{stopMove();setCtlMode(!ctl.classList.contains('btns'))};
+$$('#pad button').forEach(b=>{const [dx,dy]=b.dataset.d.split(',').map(Number);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();clearInterval(sendT);if(!dx&&!dy){stopMove();return}
+    const n=(dx&&dy)?0.75:1;jx=dx*n;jy=dy*n;lastSent='';sendMove();sendT=setInterval(sendMove,120)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{if(sendT){stopMove()}}));
+});
+
+// tabs
+$$('.tab').forEach(b=>b.onclick=()=>{$$('.tab').forEach(x=>x.classList.toggle('on',x===b));$$('.tp').forEach(p=>p.hidden=p.dataset.t!==b.dataset.t);loadImg(active)});
+
+// image: white balance + exposure
+const img=[null,null,null];
+const EV=[-3,-2.7,-2.3,-2,-1.7,-1.3,-1,-0.7,-0.3,0,0.3,0.7,1,1.3,1.7,2,2.3,2.7,3];
+const ISO=[100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400];
+async function loadImg(i){const j=await api(i,'GET','image');if(j&&j.exposure){img[i]=j;if(i===active)renderImg()}}
+function renderImg(){renderFocus();const s=img[active];if(!s){$('#wbv').textContent='–';$('#evv').textContent='–';$('#aeT').textContent=tr('exposure');return}
+  const b=s.balance;$('#wbv').textContent=b.mode===255?b.color+'K':(tr('wbNames')[b.mode]||tr('wbMode',{n:b.mode}));
+  $$('.wbm').forEach(x=>x.classList.toggle('on',b.mode===0));$$('.wbk').forEach(x=>x.classList.toggle('on',b.mode===255&&+x.dataset.k===b.color));
+  const e=s.exposure;$('#aeT').textContent=e.auto?tr('aeAuto'):tr('aeMan');$('#aeT').classList.toggle('on',e.auto);
+  $('#evv').textContent=e.auto?('EV '+(e.compensate>0?'+':'')+e.compensate):('ISO '+e.iso);
+}
+function stepIn(list,cur,d,min=-Infinity,max=Infinity){const l=list.filter(v=>v>=min&&v<=max);
+  if(d>0){const n=l.find(v=>v>cur+1e-6);return n===undefined?l[l.length-1]:n}
+  const p=[...l].reverse().find(v=>v<cur-1e-6);return p===undefined?l[0]:p}
+async function setWB(mode,color){const s=img[active];if(!s)return;s.balance={mode,color};renderImg();await api(active,'POST','image_balance',{mode,color})}
+$$('.wbm').forEach(b=>b.onclick=()=>{const s=img[active];if(s)setWB(0,s.balance.color)});
+$$('.wbk').forEach(b=>b.onclick=()=>setWB(255,+b.dataset.k));
+$('#wbm').onclick=()=>{const s=img[active];if(s)setWB(255,Math.max(2000,(s.balance.mode===255?s.balance.color:4600)-100))};
+$('#wbp').onclick=()=>{const s=img[active];if(s)setWB(255,Math.min(10000,(s.balance.mode===255?s.balance.color:4600)+100))};
+async function setExp(ch){const s=img[active];if(!s)return;Object.assign(s.exposure,ch);renderImg();await api(active,'POST','image_exposure',s.exposure)}
+$('#aeT').onclick=()=>{const s=img[active];if(s)setExp({auto:!s.exposure.auto})};
+function evStep(d){const s=img[active];if(!s)return;const e=s.exposure;
+  if(e.auto)setExp({compensate:stepIn(EV,e.compensate,d)});
+  else{ // manual: linear ISO steps – 600 per click, finer (100) in the low range
+    const lo=e.iso_min||100,hi=e.iso_max||6400,step=(d>0?e.iso>=800:e.iso>800)?600:100;
+    let v=Math.round((e.iso+d*step)/100)*100;v=Math.min(hi,Math.max(lo,v));if(v!==e.iso)setExp({iso:v})}}
+$('#evm').onclick=()=>evStep(-1);$('#evp').onclick=()=>evStep(1);
+
+// focus: AF (continuous) / MF with stepping; "Zaostriť" = single autofocus (AF-S) and hold
+const FSTEP=2,FMIN=1,FMAX=100;let fT=null;
+function renderFocus(){const s=img[active];const f=s&&s.focus;
+  $$('.fm').forEach(b=>b.classList.toggle('on',!!f&&(b.dataset.f==='mf'?f.focus_mode==='mf':f.focus_mode!=='mf')));
+  $('#fOne').classList.toggle('on',!!f&&f.focus_mode==='afs');
+  $('#fv').textContent=!f?'–':f.focus_mode==='mf'?'MF '+f.focus_position:f.focus_mode==='afs'?tr('afOnce'):'AF'}
+async function setFocus(ch){const s=img[active];if(!s||!s.focus)return;Object.assign(s.focus,ch);renderFocus();await api(active,'POST','image_af',s.focus)}
+$$('.fm').forEach(b=>b.onclick=()=>setFocus({focus_mode:b.dataset.f}));
+$('#fOne').onclick=async()=>{await setFocus({focus_mode:'afs'});setTimeout(()=>loadImg(active),1500)};
+function focusStep(d){const s=img[active];if(!s||!s.focus)return;const f=s.focus;
+  const v=Math.min(FMAX,Math.max(FMIN,(f.focus_position||50)+d*FSTEP));
+  if(v===f.focus_position&&f.focus_mode==='mf')return;setFocus({focus_mode:'mf',focus_position:v})}
+function holdFocus(btn,d){
+  const start=e=>{e.preventDefault();focusStep(d);clearInterval(fT);fT=setInterval(()=>focusStep(d),160)};
+  const end=()=>{clearInterval(fT);fT=null};
+  btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
+  btn.addEventListener('contextmenu',e=>e.preventDefault())}
+holdFocus($('#fm1'),-1);holdFocus($('#fp1'),1);
+
+// histogram / zebra toggles
+function setTool(cls,btn,on){document.body.classList.toggle(cls,on);$(btn).classList.toggle('on',on);store.set(cls,on);
+  if(!on&&cls==='showZebra')views.forEach(v=>v.zctx.clearRect(0,0,256,144))}
+setTool('showHist','#histT',store.get('showHist',true));setTool('showZebra','#zebT',store.get('showZebra',false));
+$('#histT').onclick=()=>setTool('showHist','#histT',!document.body.classList.contains('showHist'));
+$('#zebT').onclick=()=>setTool('showZebra','#zebT',!document.body.classList.contains('showZebra'));
+function setZebraLevel(pct){ZEBRA=Math.round(pct/100*255);store.set('zebraPct',pct);$$('#zebLv button').forEach(b=>b.classList.toggle('on',+b.dataset.z===pct))}
+setZebraLevel(store.get('zebraPct',90));
+$$('#zebLv button').forEach(b=>b.onclick=()=>setZebraLevel(+b.dataset.z));
+
+// tally: state '' | 'pvw' | 'pgm'
+function setTally(i,st){const el=camEls[i];if(!el)return;el.classList.toggle('pvw',st==='pvw');el.classList.toggle('pgm',st==='pgm');
+  el.querySelector('.tb').textContent=st==='pgm'?'LIVE':st==='pvw'?'PREVIEW':'';if(typeof guardOnTallyChange==='function')guardOnTallyChange()}
+window.setTally=setTally;
+
+// ---------- LIVE guard ----------
+cfg.guard=store.get('guard',{on:true,mode:'warn'});
+const G_MOVE='#joy,#pad button,#zin,#zout',G_PRE='.pre',G_IMG='.ai,#aeT,#evm,#evp,.fm,#fOne,#fm1,#fp1,.wbm,.wbk,#wbm,#wbp';
+const isLive=()=>camEls[active]&&camEls[active].classList.contains('pgm');
+function blockedKinds(){if(!cfg.guard.on||!isLive())return[];return cfg.guard.mode==='lock'?['move','pre','img']:cfg.guard.mode==='nopre'?['pre']:[]}
+function kindOf(t){return t.closest(G_MOVE)?'move':t.closest(G_PRE)?'pre':t.closest(G_IMG)?'img':null}
+function renderGuard(){const live=cfg.guard.on&&isLive(),b=blockedKinds();const p=$('#panel');p.classList.toggle('isLive',live);
+  $('#liveBan').textContent=!live?'':tr(cfg.guard.mode==='lock'?'liveL':cfg.guard.mode==='nopre'?'liveP':'liveW',{n:active+1});
+  $$(G_MOVE).forEach(e=>e.classList.toggle('blk',b.includes('move')));$$(G_PRE).forEach(e=>e.classList.toggle('blk',b.includes('pre')));$$(G_IMG).forEach(e=>e.classList.toggle('blk',b.includes('img')))}
+function flashBan(){const e=$('#liveBan');e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash')}
+let warnedAt=0;
+['pointerdown','click'].forEach(ev=>$('#panel').addEventListener(ev,e=>{
+  if(!cfg.guard.on||!isLive())return;const k=kindOf(e.target);if(!k)return;
+  if(blockedKinds().includes(k)){e.stopImmediatePropagation();e.preventDefault();if(ev==='pointerdown')flashBan();return}
+  if(ev==='pointerdown'&&Date.now()-warnedAt>4000){warnedAt=Date.now();flashBan()}
+},true));
+function guardOnTallyChange(){renderGuard();if(blockedKinds().includes('move')){if(sendT||jId!==null){jId=null;stopMove()}if(zT){clearInterval(zT);zT=null}}
+  if(blockedKinds().includes('img')&&fT){clearInterval(fT);fT=null}}
+
+// tally: always from the PTZ Bridge program (served from it, or reached at a configured address)
+let tallyTimer=null,tallyBusy=false,tallyFails=0,manualTally=false;
+let BRIDGE=null,bridgeOk=null,BASE=null,SAME=false,EMB=false; // EMB = running inside the Android app (built-in tally)
+ // bridge status / reachable / base url / page served by it
+const tallyInfo={reach:null,j:null};     // last /tally result
+function tallyUrl(){return (BASE??'')+'/tally'}
+function normBridge(v){v=(v||'').trim().replace(/\/+$/,'').replace(/\/(tally|admin)$/,'');if(!v)return '';if(!/^https?:\/\//.test(v))v='http://'+v;if(!/:\d+$/.test(v.replace(/^https?:\/\//,'')))v+=':8080';return v}
+function applyTally(j){
+  if(manualTally)return;
+  if(!j||!j.connected){camEls.forEach((_,i)=>setTally(i,''));return}
+  const pg=j.program||[],pv=j.preview||[];
+  cfg.tally.inputs.slice(0,NCAM).forEach((inp,i)=>setTally(i,pg.includes(inp)?'pgm':pv.includes(inp)?'pvw':''));
+}
+async function pollTally(){
+  if(tallyBusy)return;tallyBusy=true;
+  const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1200);
+  try{
+    const r=await fetch(tallyUrl(),{cache:'no-store',signal:ac.signal});const j=await r.json();
+    tallyFails=0;tallyInfo.reach=true;tallyInfo.j=j;applyTally(j);
+  }catch(e){
+    if(++tallyFails>=3){tallyInfo.reach=false;tallyInfo.j=null;applyTally(null)}
+  }finally{clearTimeout(to);tallyBusy=false}
+}
+function startTally(){clearInterval(tallyTimer);tallyInfo.reach=null;tallyInfo.j=null;tallyFails=0;
+  if(cfg.tally.mode==='none'){applyTally(null);return}
+  pollTally();tallyTimer=setInterval(pollTally,300)}
+async function detectBridge(){
+  SAME=false;BASE=null;BRIDGE=null;bridgeOk=null;
+  if(location.protocol!=='http:'||!location.host){await probeBase(normBridge(cfg.tally.bridge)||'http://localhost:8080');return}
+  try{const r=await fetch('/api/status',{cache:'no-store'});const j=await r.json();if(j.app==='ptz-bridge'){BRIDGE=j;bridgeOk=true;BASE='';SAME=true;EMB=!!j.embedded}}catch(e){}
+  if(!SAME&&cfg.tally.bridge)await probeBase(normBridge(cfg.tally.bridge));
+}
+async function probeBase(b){BASE=b;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1500);
+  try{const j=await (await fetch(b+'/api/status',{cache:'no-store',signal:ac.signal})).json();if(j.app==='ptz-bridge'){BRIDGE=j;bridgeOk=true}else bridgeOk=false}catch(e){bridgeOk=false}finally{clearTimeout(to)}}
+async function pollBridge(){if(BASE===null)return;
+  const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1500);
+  try{const j=await (await fetch(BASE+'/api/status',{cache:'no-store',signal:ac.signal})).json();if(j.app==='ptz-bridge'){BRIDGE=j;bridgeOk=true}}catch(e){bridgeOk=false}finally{clearTimeout(to)}}
+
+// ---------- connection status ----------
+const LV={ok:0,'':1,warn:2,bad:3};
+function statusRows(){
+  const rows=[],swName=m=>m==='atem'?'ATEM':m==='vmix'?'vMix':m==='osee'?'OSEE':'';
+  const where=BASE?BASE.replace(/^https?:\/\//,''):'';
+  if(cfg.tally.mode==='none'&&!SAME){}
+  else if(EMB){}
+  else if(bridgeOk)rows.push({l:'ok',t:tr('rBridgeOk'),d:BRIDGE&&BRIDGE.host?BRIDGE.host+(where?' · '+where:''):where});
+  else if(bridgeOk===false)rows.push({l:'bad',t:tr('rBridgeNo'),d:SAME?tr('rBridgeNoSame'):tr('rBridgeNoAddr',{n:where})});
+  if(cfg.tally.mode==='none')rows.push({l:'',t:tr('rTallyOff'),d:tr('rTallyOffD')});
+  else{
+    const j=tallyInfo.j;
+    if(bridgeOk===false){}
+    else if(tallyInfo.reach===null||!j)rows.push({l:'',t:tr('rSwWait'),d:''});
+    else if(j.switcher&&j.switcher!=='none'&&j.switcher!==cfg.tally.mode)rows.push({l:'warn',t:tr('rSwMismatch',{n:swName(j.switcher),p:swName(cfg.tally.mode)}),d:tr('rSwMismatchD')});
+    else if(j.switcher==='none')rows.push({l:'bad',t:tr('rSwNone'),d:tr('rSwNoneD')});
+    else if(j.connected)rows.push({l:'ok',t:tr('rSwOk',{n:j.model||swName(cfg.tally.mode)}),d:''});
+    else rows.push({l:'bad',t:tr('rSwBad'),d:(LANG==='sk'&&BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.error)||tr('rSwBadD')});
+  }
+  views.forEach((v,i)=>{
+    const h=health[i],ip=cfg.ips[i],video=Date.now()-v.lastFrame<3000;
+    if(h.api===false&&!video)rows.push({l:'bad',t:tr('rCamDown',{n:i+1}),d:tr('rCamDownD',{p:ip})});
+    else if(h.api&&video)rows.push({l:'ok',t:tr('rCamOk',{n:i+1}),d:tr('rCamOkD',{p:ip,f:v.fps})});
+    else if(h.api&&!video)rows.push({l:'warn',t:tr('rCamNoVid',{n:i+1}),d:!CODEC?(window.isSecureContext?tr('rCamNoVidCodec'):/Android/i.test(navigator.userAgent)?tr('rCamNoVidAndroid',{n:location.origin}):tr('rCamNoVidSecure')):tr('rCamNoVidBusy')});
+    else if(!h.api&&video)rows.push({l:'warn',t:tr('rCamNoApi',{n:i+1}),d:tr('rCamNoApiD',{p:ip})});
+    else rows.push({l:'',t:tr('rCamConn',{n:i+1}),d:ip});
+  });
+  return rows;
+}
+function renderStatus(){
+  const rows=statusRows();
+  if($('#settings').style.display==='flex')$('#stat').innerHTML=rows.map(r=>`<i class="${r.l}"></i><b>${r.t}</b>${r.d?`<small>${r.d}</small>`:''}`).join('');
+  const worst=rows.reduce((a,r)=>LV[r.l]>LV[a.l]?r:a,{l:'ok'});
+  const d=$('#tdot');d.className=worst.l==='ok'?'ok':worst.l;
+  d.querySelector('span').textContent=worst.l==='ok'?tr('allOk'):worst.t;
+}
+setInterval(renderStatus,1000);
+setInterval(()=>{views.forEach((_,i)=>pingCam(i));pollBridge()},3000);
+$('#tdot').onclick=()=>{openSet();$('#stat').scrollIntoView({block:'start'})};
+
+// source lists; numbers = input numbers reported by the bridge in /tally
+const TALLY_SRC={
+  atem:[1,2,3,4,5,6,7,8].map(n=>[n,'Cam '+n]),
+  osee:[...[1,2,3,4,5,6,7,8].map(n=>[n,'Cam '+n]),[9,'Player 1'],[10,'Player 2'],[11,'Aux 3'],[12,'Aux 4']],
+  get vmix(){return Array.from({length:20},(_,i)=>[i+1,tr('vmixIn',{n:i+1})])}
+};
+let setMode='none';
+function renderTallyForm(mode,inputs){setMode=mode;$('#bridgeNote').hidden=!SAME||EMB;$('#urlBox').hidden=SAME;$('#swIpBox').hidden=!EMB;$('#swIpErr').hidden=true;$('#swIpLbl').textContent=tr(mode==='vmix'?'swIpVmix':'swIp');
+  $$('#tMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));$('#tFields').hidden=mode==='none';
+  if(mode==='none')return;
+  ['#tIn0','#tIn1','#tIn2'].forEach((sel,i)=>{const el=$(sel);el.innerHTML=TALLY_SRC[mode].map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    el.value=TALLY_SRC[mode].some(([v])=>v===inputs[i])?inputs[i]:TALLY_SRC[mode][i][0]})}
+$$('#tMode button').forEach(b=>b.onclick=()=>renderTallyForm(b.dataset.m,[0,1,2].map(i=>+$('#tIn'+i).value||cfg.tally.inputs[i])));
+
+// settings
+function openSet(){$('#gOn').checked=cfg.guard.on;$('#gMode').value=cfg.guard.mode;$('#gMode').disabled=!cfg.guard.on;$('#tUrl').value=(cfg.tally.bridge||'').replace(/^https?:\/\//,'');if(EMB)$('#tSwIp').value=(BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.ip)||'';renderTallyForm(cfg.tally.mode,cfg.tally.inputs);$('#ip0').value=cfg.ips[0];$('#ip1').value=cfg.ips[1];$('#ip2').value=cfg.ips[2];$('#three').checked=cfg.three;document.body.classList.toggle('three',cfg.three);$('#invPan').checked=cfg.invPan;$('#invTilt').checked=cfg.invTilt;$('#codecInfo').textContent=tr('codec',{n:CODEC||tr('codecNo')});$('#settings').style.display='flex';renderStatus()}
+$('#setBtn').onclick=openSet;$('#closeSet').onclick=()=>$('#settings').style.display='none';
+$('#gOn').onchange=()=>{$('#gMode').disabled=!$('#gOn').checked};
+$('#three').onchange=()=>document.body.classList.toggle('three',$('#three').checked);
+$('#closeSet').addEventListener('click',()=>document.body.classList.toggle('three',cfg.three));
+$('#saveSet').onclick=async()=>{
+  if(EMB){const ip=$('#tSwIp').value.trim();
+    if(setMode!=='none'&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){$('#swIpErr').textContent=tr('swIpBad');$('#swIpErr').hidden=false;$('#tSwIp').focus();return}
+    try{const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:setMode,ip})});const j=await r.json();if(j&&j.app)BRIDGE=j}catch(e){}}
+  cfg.guard={on:$('#gOn').checked,mode:$('#gMode').value};store.set('guard',cfg.guard);renderGuard();cfg.ips=[0,1,2].map(i=>$('#ip'+i).value.trim());const threeNew=$('#three').checked;cfg.invPan=$('#invPan').checked;cfg.invTilt=$('#invTilt').checked;
+  store.set('ips',cfg.ips);store.set('invPan',cfg.invPan);store.set('invTilt',cfg.invTilt);
+  if(!SAME)cfg.tally.bridge=normBridge($('#tUrl').value);
+  cfg.tally.mode=setMode;if(setMode!=='none')cfg.tally.inputs=[0,1,2].map(i=>+$('#tIn'+i).value||i+1);store.set('tally',cfg.tally);
+  if(threeNew!==cfg.three){store.set('three',threeNew);location.reload();return}
+  $('#settings').style.display='none';views.forEach(v=>v.connect());(SAME?Promise.resolve():detectBridge()).then(startTally)};
+
+// start
+(async()=>{
+  if(location.protocol==='https:')log(tr('httpsWarn'));
+  CODEC=await pickCodec();
+  if(!CODEC)log(tr('noWebcodecs'));
+  await detectBridge();
+  if(EMB&&BRIDGE.switcher){cfg.tally.mode=BRIDGE.switcher.type;store.set('tally',cfg.tally)}
+  else if(BRIDGE&&cfg.tally.mode==='none'&&BRIDGE.switcher&&BRIDGE.switcher.type!=='none'){cfg.tally.mode=BRIDGE.switcher.type;store.set('tally',cfg.tally)}
+  views.forEach(v=>v.connect());setActive(0);startTally();views.forEach((_,i)=>pingCam(i));renderStatus();
+})();
+</script>
+</body>
+</html>

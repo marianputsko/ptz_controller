@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PTZ Bridge</title>
+<style>
+:root{--body:#171B20;--deck:#1F252C;--key:#2B333C;--key-hi:#36404B;--ink:#DCE2E8;--dim:#7E8996;--lamp:#F5AE3D;--lamp-ink:#2A1B05;--ok:#22C55E;--bad:#FF3A30;--warn:#F5AE3D}
+*{box-sizing:border-box}
+body{margin:0;background:var(--body);color:var(--ink);font:500 15px/1.4 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:24px;margin:0}
+.sub{color:var(--dim);margin-top:-12px}
+section{background:var(--deck);border:1px solid #2E3740;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+h2{font-size:16px;margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;color:var(--ink);background:linear-gradient(var(--key-hi),var(--key) 14%);border:1px solid #11151A;border-radius:10px;padding:10px 14px;box-shadow:0 2px 0 #0D1014;cursor:pointer}
+button.on{background:var(--lamp);color:var(--lamp-ink);border-color:#9C6614}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+input{font:inherit;font-size:16px;background:#12161B;color:var(--ink);border:1px solid #2E3740;border-radius:10px;padding:10px;width:100%}
+label{color:var(--dim);font-size:13px}
+.st{display:grid;grid-template-columns:14px 1fr;gap:4px 10px;align-items:start}
+.st i{width:12px;height:12px;border-radius:50%;margin-top:5px;background:#555}
+.st i.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}.st i.bad{background:var(--bad)}.st i.warn{background:var(--warn)}
+.st b{font-weight:700}.st small{color:var(--dim);grid-column:2}
+.url{font-size:22px;font-weight:700;word-break:break-all}
+.urls{display:flex;flex-direction:column;gap:6px}
+.urls .alt{font-size:15px;color:var(--dim);font-weight:500}
+#msg{color:var(--dim);min-height:1.4em}
+.open{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+#qr{width:180px;height:180px;border-radius:12px;background:#fff;padding:6px;flex:0 0 auto}
+.urls .url{cursor:pointer}.urls .url.sel{color:var(--lamp)}
+.tl{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.tl div{position:relative;aspect-ratio:16/10;border-radius:12px;background:#12161B;border:2px solid #2E3740;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:background .1s,border-color .1s}
+.tl b{font-size:18px}.tl span{font-size:11px;font-weight:700;letter-spacing:.02em;min-height:1.2em}
+.tl .pgm{background:#FF3A30;border-color:#FF6A62;color:#fff;box-shadow:0 0 18px rgba(255,58,48,.45)}
+.tl .pvw{background:#16A34A;border-color:#22C55E;color:#fff;box-shadow:0 0 18px rgba(34,197,94,.35)}
+.tl.off div{opacity:.35}
+</style>
+</head>
+<body>
+<main>
+  <h1>PTZ Bridge</h1>
+  <div class="sub">Tento program musí bežať, kým používaš PTZ ovládač na tablete.</div>
+
+  <section>
+    <h2>Otvor na tablete</h2>
+    <div class="open"><img id="qr" alt="QR kód s adresou pre tablet" width="180" height="180"><div class="urls" id="urls">–</div></div>
+    <small style="color:var(--dim)">Tablet musí byť v rovnakej sieti ako tento počítač.</small>
+  </section>
+
+  <section>
+    <h2>Stav</h2>
+    <div class="st" id="st"></div>
+  </section>
+
+  <section id="tallySec" hidden>
+    <h2>Tally z réžie</h2>
+    <div class="tl" id="tl"></div>
+    <small style="color:var(--dim)">Červená = v programe (live), zelená = v náhľade (preview).</small>
+  </section>
+
+  <section>
+    <h2>Réžia</h2>
+    <div class="row" id="type">
+      <button data-t="none">Bez tally</button>
+      <button data-t="atem">Blackmagic ATEM</button>
+      <button data-t="vmix">vMix</button>
+      <button data-t="osee">OSEE GoStream</button>
+    </div>
+    <div id="ipBox"><label for="ip" id="ipLbl">IP adresa réžie</label><input id="ip" inputmode="decimal" placeholder="192.168.10.240"></div>
+    <div class="row"><button id="save" class="on">Uložiť a pripojiť</button></div>
+    <div id="msg"></div>
+  </section>
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let type='none',loaded=false,qrUrl=null;
+document.addEventListener('click',e=>{const d=e.target.closest('.url[data-u]');if(d){qrUrl=d.dataset.u;$('#qr').src='/api/qr.svg?u='+encodeURIComponent(qrUrl);$$('.url[data-u]').forEach(x=>{x.classList.toggle('sel',x===d);x.classList.toggle('alt',x!==d)})}});
+function setType(t){type=t;$('#ipLbl').textContent=t==='vmix'?'IP adresa počítača s vMixom':'IP adresa réžie';$$('#type button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#ipBox').hidden=t==='none'}
+$$('#type button').forEach(b=>b.onclick=()=>setType(b.dataset.t));
+async function save(){
+  if(type!=='none'&&!$('#ip').value.trim()){$('#msg').textContent='Najprv zadaj IP adresu réžie.';$('#ip').focus();return}
+  $('#msg').textContent='Ukladám…';
+  try{const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,ip:$('#ip').value.trim()})});
+    const j=await r.json();$('#msg').textContent=r.ok?'Uložené, pripájam sa na réžiu.':(j.error||'Nepodarilo sa uložiť');render(j)}
+  catch(e){$('#msg').textContent='Program neodpovedá. Beží ešte okno s programom?'}
+}
+$('#save').onclick=save;$('#ip').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
+function row(lvl,title,detail){return `<i class="${lvl}"></i><b>${title}</b>${detail?`<small>${detail}</small>`:''}`}
+function render(s){
+  if(!s||!s.app)return;
+  if(!loaded){loaded=true;setType(s.switcher.type);$('#ip').value=s.switcher.ip||''}
+  if(!qrUrl||!s.urls.includes(qrUrl)){qrUrl=s.primary;$('#qr').src='/api/qr.svg?u='+encodeURIComponent(qrUrl)}
+  $('#urls').innerHTML=s.urls.length?s.urls.map(u=>`<div class="url ${u===qrUrl?'sel':'alt'}" data-u="${u}" title="Ukázať QR kód pre túto adresu">${u}</div>`).join('')+'<small style="color:var(--dim)">Naskenuj QR kód tabletom. Ťuknutím na inú adresu zmeníš QR kód.</small>':'Počítač nie je pripojený k žiadnej sieti';
+  const sw=s.switcher;let h=row('ok','Program beží',`verzia ${s.version}`);
+  if(sw.type==='none')h+=row('','Réžia nenastavená','Tally sa nebude zobrazovať. Vyber typ réžie nižšie.');
+  else if(sw.connected)h+=row('ok',`Réžia pripojená – ${sw.model||sw.type.toUpperCase()}`,sw.ip);
+  else if(!sw.ip)h+=row('bad','Réžia nepripojená','Zadaj IP adresu réžie nižšie a klikni Uložiť a pripojiť.');
+  else h+=row('bad','Réžia nepripojená',(sw.error||'Pripájam…')+' · Na Macu skontroluj aj Súkromie a bezpečnosť → Lokálna sieť (povoliť Terminál).');
+  const t=s.tablets||[];
+  h+=t.length?row('ok',`Pripojené tablety: ${t.length}`,t.join(', ')):row('warn','Žiadny tablet nie je pripojený','Otvor na tablete adresu zhora.');
+  $('#st').innerHTML=h;
+  renderTally(sw);
+}
+function renderTally(sw){
+  $('#tallySec').hidden=sw.type==='none';if(sw.type==='none')return;
+  const n=Math.max(sw.type==='osee'?12:8,Math.min(sw.inputs||8,20)),pg=sw.program||[],pv=sw.preview||[];
+  const el=$('#tl');el.classList.toggle('off',!sw.connected);
+  if(el.children.length!==n||el.dataset.t!==sw.type){el.dataset.t=sw.type;const ON=['Player 1','Player 2','Aux 3','Aux 4'];el.innerHTML=Array.from({length:n},(_,i)=>`<div><b>${sw.type==='osee'&&i>=8&&i<12?ON[i-8]:(sw.type==='vmix'?'Vstup':sw.type==='osee'?'IN':'Cam')+' '+(i+1)}</b><span></span></div>`).join('')}
+  [...el.children].forEach((d,i)=>{const k=pg.includes(i+1)?'pgm':pv.includes(i+1)?'pvw':'';d.className=k;d.querySelector('span').textContent=k==='pgm'?'LIVE':k==='pvw'?'PREVIEW':''});
+}
+async function poll(){try{render(await (await fetch('/api/status',{cache:'no-store'})).json())}catch(e){$('#st').innerHTML=row('bad','Program neodpovedá','Spusti ho znova.')}}
+poll();setInterval(poll,300);
+</script>
+</body>
+</html>
