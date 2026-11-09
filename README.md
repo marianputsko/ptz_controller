@@ -8,7 +8,9 @@ A controller for **OBSBOT Tail 2** PTZ cameras on a tablet, with live previews, 
 
 - **Android (hlavná verzia):** [PTZ-Controller.apk](../../releases/latest/download/PTZ-Controller.apk). Funguje samostatne: kamery aj tally z réžie pripojí priamo.
 - **Prehliadač:** [`ptz.html`](ptz.html), jeden súbor pre Chrome.
-- **PTZ Bridge (voliteľný):** priečinok [`bridge/`](bridge/). Pridá tally do HTML verzie. Potrebuje Node.js.
+- **PTZ Bridge pre Mac (voliteľný):** [PTZ-Bridge-mac.dmg](../../releases/latest/download/PTZ-Bridge-mac.dmg). Pridá tally do HTML verzie. Apple silicon aj Intel, macOS 12+.
+- **PTZ Bridge pre Windows (voliteľný):** [PTZ-Bridge.exe](../../releases/latest/download/PTZ-Bridge.exe). Windows 10/11.
+- Zdrojový kód PTZ Bridge je v [`bridge/`](bridge/) a dá sa spustiť aj priamo cez Node.js.
 
 ## Štruktúra / Layout
 
@@ -16,8 +18,8 @@ A controller for **OBSBOT Tail 2** PTZ cameras on a tablet, with live previews, 
 |---|---|
 | `ptz.html` | Ovládač (rovnaký súbor beží v prehliadači aj v Android aplikácii) |
 | `android/` | Android aplikácia: WebView s ovládačom a vstavaný tally server (ATEM, vMix, OSEE) na 127.0.0.1 |
-| `bridge/` | PTZ Bridge pre macOS a Windows (Node.js, bez závislostí) |
-| `.github/workflows/android.yml` | Zostaví APK a zverejní ho v Releases pri každom pushi do `main` |
+| `bridge/` | PTZ Bridge pre macOS a Windows (Node.js, bez závislostí); `bridge/packaging/` zabalí program do .app a .exe |
+| `.github/workflows/android.yml` | Pri každom pushi do `main` zostaví APK, Mac .dmg a Windows .exe a zverejní ich v Releases |
 
 ## Stav tally / Tally status
 

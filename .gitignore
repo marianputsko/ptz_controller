@@ -6,3 +6,5 @@ local.properties
 .DS_Store
 bridge/config.json
 android/app/src/main/assets/www/index.html
+bridge/dist/
+sea-prep.blob

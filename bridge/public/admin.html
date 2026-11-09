@@ -72,6 +72,12 @@ label{color:var(--dim);font-size:13px}
     <div class="row"><button id="save" class="on">Uložiť a pripojiť</button></div>
     <div id="msg"></div>
   </section>
+
+  <section>
+    <h2>Ukončenie</h2>
+    <small style="color:var(--dim)">Po ukončení prestane tablet dostávať tally. Ovládanie kamier funguje ďalej.</small>
+    <div class="row"><button id="quit">Ukončiť PTZ Bridge</button></div>
+  </section>
 </main>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -86,7 +92,10 @@ async function save(){
     const j=await r.json();$('#msg').textContent=r.ok?'Uložené, pripájam sa na réžiu.':(j.error||'Nepodarilo sa uložiť');render(j)}
   catch(e){$('#msg').textContent='Program neodpovedá. Beží ešte okno s programom?'}
 }
-$('#save').onclick=save;$('#ip').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
+$('#save').onclick=save;
+$('#quit').onclick=async()=>{if(!confirm('Ukončiť PTZ Bridge?'))return;try{await fetch('/api/quit',{method:'POST'})}catch(e){}
+  document.body.innerHTML='<main><h1>PTZ Bridge je ukončený</h1><div class="sub" style="margin-top:0">Toto okno môžeš zavrieť. Znova ho spustíš ikonou PTZ Bridge.</div></main>';stopped=true};
+let stopped=false;$('#ip').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
 function row(lvl,title,detail){return `<i class="${lvl}"></i><b>${title}</b>${detail?`<small>${detail}</small>`:''}`}
 function render(s){
   if(!s||!s.app)return;
@@ -110,7 +119,7 @@ function renderTally(sw){
   if(el.children.length!==n||el.dataset.t!==sw.type){el.dataset.t=sw.type;const ON=['Player 1','Player 2','Aux 3','Aux 4'];el.innerHTML=Array.from({length:n},(_,i)=>`<div><b>${sw.type==='osee'&&i>=8&&i<12?ON[i-8]:(sw.type==='vmix'?'Vstup':sw.type==='osee'?'IN':'Cam')+' '+(i+1)}</b><span></span></div>`).join('')}
   [...el.children].forEach((d,i)=>{const k=pg.includes(i+1)?'pgm':pv.includes(i+1)?'pvw':'';d.className=k;d.querySelector('span').textContent=k==='pgm'?'LIVE':k==='pvw'?'PREVIEW':''});
 }
-async function poll(){try{render(await (await fetch('/api/status',{cache:'no-store'})).json())}catch(e){$('#st').innerHTML=row('bad','Program neodpovedá','Spusti ho znova.')}}
+async function poll(){if(stopped)return;try{render(await (await fetch('/api/status',{cache:'no-store'})).json())}catch(e){$('#st').innerHTML=row('bad','Program neodpovedá','Spusti ho znova.')}}
 poll();setInterval(poll,300);
 </script>
 </body>

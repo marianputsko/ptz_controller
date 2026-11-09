@@ -1,0 +1,11 @@
+{
+  "main": "bridge/dist/bridge.js",
+  "output": "sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": false,
+  "useSnapshot": false,
+  "assets": {
+    "index.html": "bridge/public/index.html",
+    "admin.html": "bridge/public/admin.html"
+  }
+}

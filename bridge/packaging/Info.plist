@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>PTZ Bridge</string>
+  <key>CFBundleDisplayName</key><string>PTZ Bridge</string>
+  <key>CFBundleIdentifier</key><string>live.budeme.ptzbridge</string>
+  <key>CFBundleExecutable</key><string>ptz-bridge</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>__VERSION__</string>
+  <key>CFBundleVersion</key><string>__BUILD__</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <!-- No Dock icon: the program runs in the background and its window is the page in the browser. -->
+  <key>LSUIElement</key><true/>
+  <key>NSLocalNetworkUsageDescription</key><string>PTZ Bridge číta tally z réžie (ATEM, vMix, OSEE) a posiela ho tabletu v lokálnej sieti.</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>

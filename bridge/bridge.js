@@ -8,7 +8,7 @@ const net = require('net');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const QRCode = require('./vendor/QRCode');                 // Apache-2.0, from qrcode-terminal
 const QRLevel = require('./vendor/QRCode/QRErrorCorrectLevel');
 
@@ -37,8 +37,31 @@ function qrConsole(text) { // two rows per character with half blocks, white qui
 const VERSION = '0.1.0';
 const PORT = Number(process.env.PTZ_PORT) || 8080;
 const DIR = __dirname;
-const CONFIG_FILE = path.join(DIR, 'config.json');
+// Packaged as a Node single executable (Mac app / Windows exe): pages are embedded assets,
+// settings live in the user's app-data folder, and there may be no console window.
+let SEA = null;
+try { const s = require('node:sea'); if (s.isSea()) SEA = s; } catch (e) {}
+const PACKED = !!SEA;
+function dataDir() {
+  if (!PACKED) return DIR;
+  const home = os.homedir();
+  const d = process.platform === 'win32' ? path.join(process.env.APPDATA || home, 'PTZ Bridge')
+    : process.platform === 'darwin' ? path.join(home, 'Library', 'Application Support', 'PTZ Bridge')
+    : path.join(home, '.config', 'ptz-bridge');
+  try { fs.mkdirSync(d, { recursive: true }); } catch (e) {}
+  return d;
+}
+const CONFIG_FILE = path.join(dataDir(), 'config.json');
 const PUBLIC = path.join(DIR, 'public');
+function readPublic(file, cb) {
+  if (PACKED) { try { return cb(null, Buffer.from(SEA.getAsset(file))); } catch (e) { return cb(e); } }
+  fs.readFile(path.join(PUBLIC, file), cb);
+}
+function openUrl(u) {
+  const cmd = process.platform === 'darwin' ? `open "${u}"` : process.platform === 'win32' ? `start "" "${u}"` : `xdg-open "${u}"`;
+  exec(cmd, () => {});
+}
+function quit() { if (client) client.stop(); setTimeout(() => process.exit(0), 150); }
 
 // ---------------- config ----------------
 const DEFAULT_CONFIG = { switcher: { type: 'none', ip: '' } };
@@ -331,6 +354,7 @@ const server = http.createServer(async (req, res) => {
     const u = url.searchParams.get('u'); const target = tabletUrls().includes(u) ? u : primaryUrl();
     res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store' }); return res.end(qrSvg(target));
   }
+  if (p === '/api/quit' && req.method === 'POST') { sendJson(res, 200, { ok: true }); return quit(); }
   if (p === '/api/config' && req.method === 'POST') {
     try {
       const body = JSON.parse(await readBody(req));
@@ -345,17 +369,20 @@ const server = http.createServer(async (req, res) => {
   // static files
   let file = p === '/' ? 'index.html' : p === '/admin' ? 'admin.html' : p.slice(1);
   file = path.normalize(file).replace(/^(\.\.[\/\\])+/, '');
-  const full = path.join(PUBLIC, file);
-  if (!full.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
-  fs.readFile(full, (err, data) => {
+  if (!/^[\w.-]+$/.test(file)) { res.writeHead(403); return res.end(); }
+  readPublic(file, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Nenájdené'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(data);
   });
 });
 
 server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE') console.error(`\nPort ${PORT} je obsadený – program už pravdepodobne beží v inom okne.\n`);
+  if (e.code === 'EADDRINUSE') {
+    // Already running (e.g. the app was opened twice): just show its window and leave.
+    if (PACKED) { openUrl(`http://localhost:${PORT}/admin`); setTimeout(() => process.exit(0), 500); return; }
+    console.error(`\nPort ${PORT} je obsadený – program už pravdepodobne beží v inom okne.\n`);
+  }
   else console.error(e);
   process.exit(1);
 });
@@ -370,11 +397,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('   ' + primaryUrl());
   console.log(`\nNastavenia a stav: http://localhost:${PORT}/admin`);
   console.log('Program ukončíš zatvorením tohto okna (alebo Ctrl+C).\n');
-  if (!process.env.PTZ_NO_BROWSER) {
-    const u = `http://localhost:${PORT}/admin`;
-    const cmd = process.platform === 'darwin' ? `open "${u}"` : process.platform === 'win32' ? `start "" "${u}"` : `xdg-open "${u}"`;
-    exec(cmd, () => {});
-  }
+  if (!process.env.PTZ_NO_BROWSER) openUrl(`http://localhost:${PORT}/admin`);
+  // Keep the Mac awake while the program runs, otherwise tablets lose tally when it sleeps.
+  if (process.platform === 'darwin') { try { spawn('caffeinate', ['-is', '-w', String(process.pid)], { stdio: 'ignore', detached: true }).unref(); } catch (e) {} }
 });
 
 let lastLine = '';
@@ -385,5 +410,6 @@ setInterval(() => {
   if (line !== lastLine) { console.log(new Date().toLocaleTimeString() + '  ' + line); lastLine = line; }
 }, 500);
 
-process.on('SIGINT', () => { if (client) client.stop(); process.exit(0); });
+process.on('SIGINT', quit);
+process.on('SIGTERM', quit);
 module.exports = { AtemClient, tally };
