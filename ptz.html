@@ -124,7 +124,8 @@ button.small{font-size:12px;padding:6px 10px;width:100%;color:var(--dim)}
 .scol{flex:0 0 clamp(170px,19vw,240px);display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden}
 .scol .row{flex:1 1 0;min-height:30px;max-height:52px}
 .scol .row>button{padding:0 6px}
-.scol #evm,.scol #evp{font-size:20px;font-weight:700}
+.scol #evm,.scol #evp{font-size:17px;font-weight:700}
+.scol #aeT{font-size:13px}
 .scol input[type=range]{flex:0 0 26px;height:26px}
 .gw{flex:1;min-height:0;container-type:size}
 .grid3{--tw:min((100cqw - 16px) / 3,(100cqh - 8px) / 2 * 16 / 9);display:grid;grid-template-columns:repeat(3,var(--tw));grid-auto-rows:calc(var(--tw) * 9 / 16);gap:8px;justify-content:start;align-content:start}
@@ -136,7 +137,11 @@ button.small{font-size:12px;padding:6px 10px;width:100%;color:var(--dim)}
 input[type=range]{width:100%;accent-color:var(--frame);height:28px}
 #log{font-size:11px;color:var(--dim);min-height:1.2em;max-height:2.5em;overflow:hidden;flex:1;min-width:0}
 .foot{display:flex;align-items:center;gap:8px;min-height:24px}
-.tabs #setBtn{flex:0 0 46px;font-size:17px;color:var(--ink);padding:4px}
+.tabs #setBtn{flex:0 0 46px;font-size:17px;color:var(--ink);padding:4px;position:relative}
+#setBtn.upd::after{content:"";position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
+.updline{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim);flex-wrap:wrap}
+.updline #updMsg{color:var(--ink)}
+.updline #updMsg.new{color:var(--lamp);font-weight:700}
 
 /* settings sheet */
 #settings{position:fixed;inset:0;background:#05070Acc;display:none;align-items:center;justify-content:center;z-index:10}
@@ -232,8 +237,6 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
           </div></div>
         </div>
         <div class="tp" data-t="img" hidden>
-          <div class="sec"><span data-i18n="exposure">Expozícia</span></div>
-          <div class="row"><button id="aeT">Auto expozícia</button></div>
           <div class="sec"><span data-i18n="wb">Vyváženie bielej</span> <b id="wbv">–</b></div>
           <div class="row"><button class="wbm" data-m="0">Auto</button><button class="wbk" data-k="3200">3200K</button><button class="wbk" data-k="4600">4600K</button><button class="wbk" data-k="5600">5600K</button></div>
           <div class="row"><button id="wbm" data-i18n="warmer">Teplejšie −100K</button><button id="wbp" data-i18n="cooler">Studenšie +100K</button></div>
@@ -242,7 +245,7 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
       </div>
       <div class="scol">
         <div class="sec"><span data-i18n="exposure">Expozícia</span> <b id="evv">–</b></div>
-        <div class="row"><button id="evm">−</button><button id="evp">+</button></div>
+        <div class="row"><button id="aeT">Auto</button><button id="evm">−</button><button id="evp">+</button></div>
         <div class="sec" data-i18n="tracking">Sledovanie</div>
         <div class="row"><button class="ai" data-m="humanTrackingSingleMode" data-i18n="trk1">1 osoba</button><button class="ai" data-m="humanTrackingGroupMode" data-i18n="trkG">Skupina</button></div>
         <div class="sec"><span data-i18n="focus">Ostrenie</span> <b id="fv">–</b></div>
@@ -267,6 +270,11 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
         <div id="ip2Box"><label data-i18n="ipCam" data-n="3">IP kamery 3</label><input type="text" id="ip2" inputmode="decimal"></div>
         <label class="chk"><input type="checkbox" id="invPan"> <span data-i18n="invPan">Obrátiť smer pan (vľavo/vpravo)</span></label>
         <label class="chk"><input type="checkbox" id="invTilt"> <span data-i18n="invTilt">Obrátiť smer tilt (hore/dole)</span></label></section>
+      <section class="sblk" id="updBox"><label data-i18n="upd">Aktualizácie</label>
+        <label class="chk"><input type="checkbox" id="updOn"> <span data-i18n="updOn">Kontrolovať aktualizácie (raz denne, len upozorní)</span></label>
+        <div class="updline"><span id="updCur"></span><span id="updMsg"></span></div>
+        <div class="row" id="updBtns"><button id="updGo" class="on" data-i18n="updGo">Aktualizovať</button><button id="updSkip" data-i18n="updSkip">Preskočiť túto verziu</button></div>
+        <div class="row"><button id="updNow" data-i18n="updNow">Skontrolovať teraz</button></div></section>
     </div>
     <div class="scolm">
       <section class="sblk"><label data-i18n="tallySig">Tally signalizácia</label>
@@ -303,7 +311,7 @@ if(!cfg.three)$('.cam[data-i="2"]').remove();
 // ---------- language (SK / EN) ----------
 const I18N={
  sk:{cam:'Kamera {n}',toButtons:'Prepnúť na tlačidlá',toJoy:'Prepnúť na joystick',tabCtl:'Ovládanie',tabImg:'Obraz',settings:'Nastavenia',
-  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto expozícia',aeMan:'Manuálna expozícia',
+  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
   tracking:'Sledovanie',trk1:'1 osoba',trkG:'Skupina',trkOff:'Vypnúť sledovanie',focus:'Ostrenie',fOne:'Zaostriť',fOneTitle:'Zaostriť raz a podržať',
   near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
   wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',
@@ -322,7 +330,7 @@ const I18N={
   rCamNoVid:'Kamera {n}: ovládanie ide, obraz nie',rCamNoVidCodec:'Tento prehliadač nevie zobraziť obraz (H.265).',rCamNoVidSecure:'Prehliadač púšťa dekodér videa len na zabezpečenej adrese. Na tomto počítači otvor http://localhost:8080.',rCamNoVidAndroid:'Chrome púšťa dekodér videa len na zabezpečenej adrese. Otvor chrome://flags/#unsafely-treat-insecure-origin-as-secure, vlož {n}, zapni Enabled a daj Relaunch.',
   rCamNoVidBusy:'Kamera púšťa náhľad len jednému zariadeniu – zatvor jej Web UI alebo iný tablet.',rCamNoApi:'Kamera {n}: obraz ide, ovládanie nie',rCamNoApiD:'Ovládanie na {p} neodpovedá.',rCamConn:'Kamera {n}: pripájam…',allOk:'Všetko pripojené'},
  en:{cam:'Camera {n}',toButtons:'Switch to buttons',toJoy:'Switch to joystick',tabCtl:'Control',tabImg:'Image',settings:'Settings',
-  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto exposure',aeMan:'Manual exposure',
+  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
   tracking:'Tracking',trk1:'1 person',trkG:'Group',trkOff:'Stop tracking',focus:'Focus',fOne:'Focus once',fOneTitle:'Focus once and hold',
   near:'− Near',far:'Far +',afOnce:'AF once',speed:'Movement speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
   wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',
@@ -348,7 +356,7 @@ function applyI18n(){document.documentElement.lang=LANG;
   $$('[data-i18n]').forEach(el=>{el.textContent=tr(el.dataset.i18n,{n:el.dataset.n})});
   $$('[data-i18n-title]').forEach(el=>{el.title=tr(el.dataset.i18nTitle);el.setAttribute('aria-label',el.title)});
   $$('#langRow button').forEach(b=>b.classList.toggle('on',b.dataset.l===LANG))}
-function setLang(l){LANG=l;store.set('lang',l);applyI18n();
+function setLang(l){LANG=l;store.set('lang',l);applyI18n();try{renderUpd()}catch(e){}
   if(typeof setCtlMode==='function')setCtlMode(ctl.classList.contains('btns'));
   if(typeof renderImg==='function')renderImg();if(typeof renderGuard==='function')renderGuard();if(typeof renderStatus==='function')renderStatus();
   if($('#settings').style.display==='flex')$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')})}
@@ -544,11 +552,12 @@ const img=[null,null,null];
 const EV=[-3,-2.7,-2.3,-2,-1.7,-1.3,-1,-0.7,-0.3,0,0.3,0.7,1,1.3,1.7,2,2.3,2.7,3];
 const ISO=[100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400];
 async function loadImg(i){const j=await api(i,'GET','image');if(j&&j.exposure){img[i]=j;if(i===active)renderImg()}}
-function renderImg(){renderFocus();const s=img[active];if(!s){$('#wbv').textContent='–';$('#evv').textContent='–';$('#aeT').textContent=tr('exposure');return}
+function renderImg(){renderFocus();const s=img[active];if(!s){$('#wbv').textContent='–';$('#evv').textContent='–';$('#aeT').textContent=tr('aeAuto');return}
   const b=s.balance;$('#wbv').textContent=b.mode===255?b.color+'K':(tr('wbNames')[b.mode]||tr('wbMode',{n:b.mode}));
   $$('.wbm').forEach(x=>x.classList.toggle('on',b.mode===0));$$('.wbk').forEach(x=>x.classList.toggle('on',b.mode===255&&+x.dataset.k===b.color));
   const e=s.exposure;$('#aeT').textContent=e.auto?tr('aeAuto'):tr('aeMan');$('#aeT').classList.toggle('on',e.auto);
   $('#evv').textContent=e.auto?('EV '+(e.compensate>0?'+':'')+e.compensate):('ISO '+e.iso);
+  $('#evm').textContent=e.auto?'− EV':'−';$('#evp').textContent=e.auto?'+ EV':'+';
 }
 function stepIn(list,cur,d,min=-Infinity,max=Infinity){const l=list.filter(v=>v>=min&&v<=max);
   if(d>0){const n=l.find(v=>v>cur+1e-6);return n===undefined?l[l.length-1]:n}
@@ -739,6 +748,45 @@ $('#saveSet').onclick=async()=>{
   else if(BRIDGE&&cfg.tally.mode==='none'&&BRIDGE.switcher&&BRIDGE.switcher.type!=='none'){cfg.tally.mode=BRIDGE.switcher.type;store.set('tally',cfg.tally)}
   views.forEach(v=>v.connect());setActive(0);startTally();views.forEach((_,i)=>pingCam(i));renderStatus();
 })();
+
+// ---- updates: check GitHub once a day, only notify; never changes anything on its own ----
+const UPD_REPO='marianputsko/ptz_controller';
+const upd=Object.assign({on:true,skip:'',last:0,latest:''},store.get('upd',{}));
+let updState='',updNote='';
+function vnum(v){return String(v||'').replace(/^v/,'').split('.').map(n=>parseInt(n,10)||0)}
+function newer(a,b){a=vnum(a);b=vnum(b);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d)return d>0}return false}
+const updAvail=()=>!!upd.latest&&newer(upd.latest,APP_VERSION);
+async function checkUpd(force){
+  if(!upd.on&&!force){renderUpd();return}
+  if(!force&&Date.now()-upd.last<20*3600e3){renderUpd();return}
+  updState='checking';updNote='';renderUpd();
+  try{const r=await fetch('https://api.github.com/repos/'+UPD_REPO+'/releases/latest',{cache:'no-store'});if(!r.ok)throw 0;
+    const j=await r.json();upd.latest=String(j.tag_name||'').replace(/^v/,'');upd.last=Date.now();store.set('upd',upd);updState=''}
+  catch(e){updState='offline'}
+  renderUpd()}
+function renderUpd(){
+  $('#setBtn').classList.toggle('upd',upd.on&&updAvail()&&upd.latest!==upd.skip);
+  $('#updOn').checked=upd.on;$('#updCur').textContent=tr('updCur',{n:APP_VERSION});
+  const m=$('#updMsg');m.className='';let t='';
+  if(updNote)t=updNote;
+  else if(updState==='checking')t=tr('updChecking');
+  else if(updAvail()){t=upd.latest===upd.skip?tr('updSkipped',{n:upd.latest}):tr('updNew',{n:upd.latest});m.className='new'}
+  else if(updState==='offline')t=tr('updOffline');
+  else if(!upd.on)t=tr('updOff');
+  else if(upd.latest)t=tr('updNone');
+  m.textContent=t;
+  $('#updBtns').hidden=!updAvail();$('#updSkip').hidden=upd.latest===upd.skip;
+}
+window.ptzUpdStatus=(code,info)=>{ // called by the Android app while it downloads and installs
+  updNote=code==='progress'?tr('updDl',{n:info||''}):code==='perm'?tr('updPerm'):code==='confirm'?tr('updConfirm'):code==='error'?tr('updErr',{n:info||''}):'';renderUpd()};
+$('#updOn').onchange=()=>{updNote='';upd.on=$('#updOn').checked;store.set('upd',upd);if(upd.on)checkUpd(true);else renderUpd()};
+$('#updNow').onclick=()=>checkUpd(true);
+$('#updSkip').onclick=()=>{updNote='';upd.skip=upd.latest;store.set('upd',upd);renderUpd()};
+$('#updGo').onclick=()=>{
+  if(window.PTZApp&&PTZApp.installUpdate){updNote=tr('updDl',{n:''});renderUpd();PTZApp.installUpdate('https://github.com/'+UPD_REPO+'/releases/download/v'+upd.latest+'/PTZ-Controller.apk');return}
+  if(SAME&&!EMB){updNote=tr('updBridge');renderUpd();return}
+  window.open('https://github.com/'+UPD_REPO+'/releases/latest/download/ptz.html','_blank')};
+renderUpd();setTimeout(()=>checkUpd(false),5000);
 </script>
 </body>
 </html>

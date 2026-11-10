@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     static final int PORT = 18080;
     private static LocalServer server; // one per process, survives activity recreation
     private WebView web;
+    private Updater updater;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override protected void onCreate(Bundle state) {
@@ -57,6 +58,8 @@ public class MainActivity extends Activity {
                 return !"127.0.0.1".equals(r.getUrl().getHost()); // stay inside the controller
             }
         });
+        updater = new Updater(this, web);
+        web.addJavascriptInterface(updater, "PTZApp");
         setContentView(web);
         hideBars();
         if (state != null) web.restoreState(state);
@@ -109,6 +112,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (updater != null) { updater.release(); updater = null; }
         if (web != null) { web.destroy(); web = null; }
         if (isFinishing() && server != null) { server.stop(); server = null; }
         super.onDestroy();

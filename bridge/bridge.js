@@ -325,7 +325,7 @@ function sendJson(res, code, obj) {
 }
 function statusObj() {
   return {
-    app: 'ptz-bridge', version: VERSION, host: hostName(), port: PORT, urls: tabletUrls(), primary: primaryUrl(),
+    app: 'ptz-bridge', version: VERSION, platform: process.platform, host: hostName(), port: PORT, urls: tabletUrls(), primary: primaryUrl(),
     switcher: { type: tally.type, ip: config.switcher.ip, connected: tally.connected, model: tally.model, error: tally.error,
       program: tally.program, preview: tally.preview, inputs: tally.inputs },
     tablets: activeClients()

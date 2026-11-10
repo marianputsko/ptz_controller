@@ -7,6 +7,7 @@
 <style>
 :root{--body:#171B20;--deck:#1F252C;--key:#2B333C;--key-hi:#36404B;--ink:#DCE2E8;--dim:#7E8996;--lamp:#F5AE3D;--lamp-ink:#2A1B05;--ok:#22C55E;--bad:#FF3A30;--warn:#F5AE3D}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--body);color:var(--ink);font:500 15px/1.4 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:720px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:18px}
 h1{font-size:24px;margin:0}
@@ -42,6 +43,12 @@ label{color:var(--dim);font-size:13px}
 <main>
   <h1>PTZ Bridge</h1>
   <div class="sub">Tento program musí bežať, kým používaš PTZ ovládač na tablete.</div>
+
+  <section id="updSec" hidden style="border-color:#9C6614">
+    <h2 id="updTitle">Nová verzia</h2>
+    <small style="color:var(--dim)" id="updText"></small>
+    <div class="row"><button id="updGet" class="on">Stiahnuť novú verziu</button><button id="updSkip">Preskočiť túto verziu</button></div>
+  </section>
 
   <section>
     <h2>Otvor na tablete</h2>
@@ -95,11 +102,23 @@ async function save(){
 $('#save').onclick=save;
 $('#quit').onclick=async()=>{if(!confirm('Ukončiť PTZ Bridge?'))return;try{await fetch('/api/quit',{method:'POST'})}catch(e){}
   document.body.innerHTML='<main><h1>PTZ Bridge je ukončený</h1><div class="sub" style="margin-top:0">Toto okno môžeš zavrieť. Znova ho spustíš ikonou PTZ Bridge.</div></main>';stopped=true};
-let stopped=false;$('#ip').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
+let stopped=false;
+// Update check: once a day against GitHub, only a notice here; nothing is installed automatically.
+const REPO='marianputsko/ptz_controller';let ver='',plat='',upd={};try{upd=JSON.parse(localStorage.getItem('upd')||'{}')}catch(e){}
+const vn=v=>String(v||'').replace(/^v/,'').split('.').map(n=>parseInt(n,10)||0);
+const newer=(a,b)=>{a=vn(a);b=vn(b);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d)return d>0}return false};
+function showUpd(){const on=!!upd.latest&&ver&&newer(upd.latest,ver)&&upd.latest!==upd.skip;$('#updSec').hidden=!on;
+  if(on){$('#updTitle').textContent='Nová verzia '+upd.latest;$('#updText').textContent='Máš verziu '+ver+'. Stiahni novú, zavri PTZ Bridge a nahraď ho. Nastavenia ostanú. Ak práve beží akcia, pokojne to odlož.'}}
+async function checkUpd(){if(Date.now()-(upd.last||0)<20*3600e3){showUpd();return}
+  try{const r=await fetch('https://api.github.com/repos/'+REPO+'/releases/latest',{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    upd.latest=String(j.tag_name||'').replace(/^v/,'');upd.last=Date.now();localStorage.setItem('upd',JSON.stringify(upd))}catch(e){}
+  showUpd()}
+$('#updSkip').onclick=()=>{upd.skip=upd.latest;try{localStorage.setItem('upd',JSON.stringify(upd))}catch(e){}showUpd()};
+$('#updGet').onclick=()=>window.open('https://github.com/'+REPO+'/releases/latest/download/'+(plat==='win32'?'PTZ-Bridge.exe':'PTZ-Bridge-mac.dmg'),'_blank');$('#ip').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
 function row(lvl,title,detail){return `<i class="${lvl}"></i><b>${title}</b>${detail?`<small>${detail}</small>`:''}`}
 function render(s){
   if(!s||!s.app)return;
-  if(!loaded){loaded=true;setType(s.switcher.type);$('#ip').value=s.switcher.ip||''}
+  if(!loaded){loaded=true;setType(s.switcher.type);$('#ip').value=s.switcher.ip||'';ver=s.version;plat=s.platform||'';setTimeout(checkUpd,3000)}
   if(!qrUrl||!s.urls.includes(qrUrl)){qrUrl=s.primary;$('#qr').src='/api/qr.svg?u='+encodeURIComponent(qrUrl)}
   $('#urls').innerHTML=s.urls.length?s.urls.map(u=>`<div class="url ${u===qrUrl?'sel':'alt'}" data-u="${u}" title="Ukázať QR kód pre túto adresu">${u}</div>`).join('')+'<small style="color:var(--dim)">Naskenuj QR kód tabletom. Ťuknutím na inú adresu zmeníš QR kód.</small>':'Počítač nie je pripojený k žiadnej sieti';
   const sw=s.switcher;let h=row('ok','Program beží',`verzia ${s.version}`);
