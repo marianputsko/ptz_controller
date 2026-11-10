@@ -134,9 +134,13 @@ jobs:
     needs: [android, mac, windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+      - run: cp src/ptz.html ptz.html
       - run: ls -la
       - uses: softprops/action-gh-release@v2
         with:
@@ -147,7 +151,9 @@ jobs:
             PTZ-Controller.apk
             PTZ-Bridge-mac.dmg
             PTZ-Bridge.exe
+            ptz.html
           body: |
             **PTZ-Controller.apk** – Android aplikácia pre tablet, kamery aj tally pripojí priamo.
             **PTZ-Bridge-mac.dmg** – PTZ Bridge pre macOS 12+ (Apple silicon aj Intel), tally pre HTML ovládač.
             **PTZ-Bridge.exe** – PTZ Bridge pre Windows 10/11, tally pre HTML ovládač.
+            **ptz.html** – ovládač ako jeden súbor pre Chrome.
