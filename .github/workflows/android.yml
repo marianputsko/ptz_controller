@@ -67,7 +67,7 @@ jobs:
           APP="dmg/PTZ Bridge.app"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp ptz-bridge "$APP/Contents/MacOS/ptz-bridge"
-          sed -e "s/__VERSION__/0.1.${GITHUB_RUN_NUMBER}/" -e "s/__BUILD__/${GITHUB_RUN_NUMBER}/" bridge/packaging/Info.plist > "$APP/Contents/Info.plist"
+          sed -e "s/__VERSION__/0.9.${GITHUB_RUN_NUMBER}/" -e "s/__BUILD__/${GITHUB_RUN_NUMBER}/" bridge/packaging/Info.plist > "$APP/Contents/Info.plist"
           mkdir AppIcon.iconset
           for s in 16 32 128 256 512; do
             sips -z $s $s bridge/packaging/icon.png --out AppIcon.iconset/icon_${s}x${s}.png >/dev/null
@@ -113,7 +113,7 @@ jobs:
           ./rcedit.exe PTZ-Bridge.exe --set-icon bridge/packaging/icon.ico \
             --set-version-string ProductName "PTZ Bridge" --set-version-string FileDescription "PTZ Bridge" \
             --set-version-string CompanyName "budeme.live" --set-version-string OriginalFilename "PTZ-Bridge.exe" \
-            --set-version-string InternalName "PTZ Bridge" --set-file-version "0.1.${GITHUB_RUN_NUMBER}" --set-product-version "0.1.${GITHUB_RUN_NUMBER}"
+            --set-version-string InternalName "PTZ Bridge" --set-file-version "0.9.${GITHUB_RUN_NUMBER}" --set-product-version "0.9.${GITHUB_RUN_NUMBER}"
           npx --yes postject@1.0.0-alpha.6 PTZ-Bridge.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse "$SEA_FUSE"
       - name: Smoke test
         run: |
@@ -140,8 +140,8 @@ jobs:
       - run: ls -la
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.${{ github.run_number }}
-          name: PTZ Controller 0.1.${{ github.run_number }}
+          tag_name: v0.9.${{ github.run_number }}
+          name: PTZ Controller 0.9.${{ github.run_number }}
           make_latest: true
           files: |
             PTZ-Controller.apk

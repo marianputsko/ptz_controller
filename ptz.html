@@ -102,24 +102,30 @@ button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
 button.small{font-size:12px;padding:6px 10px;width:100%;color:var(--dim)}
 
 /* zoom rocker */
-#zoomCol{flex:0 0 76px;align-items:stretch}
+#zoomCol{flex:0 0 clamp(46px,5vw,64px);align-items:stretch}
+#zoomCol .rock button{font-size:13px;padding:0 2px}
+#zv{font-size:15px}
 #zoomCol .rock{flex:1;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 2px 0 #0D1014;min-height:0}
-#zoomCol .rock button{flex:1;border-radius:0;box-shadow:none;font-size:15px;font-weight:700}
+#zoomCol .rock button{flex:1;border-radius:0;box-shadow:none;font-weight:700}
 #zoomCol .rock button+button{border-top:1px solid #11151A}
 #zbar{height:6px;border-radius:3px;background:#12161B;overflow:hidden}
 #zbar i{display:block;height:100%;width:0;background:var(--frame);transition:width .15s}
 #zv{text-align:center;font-size:18px;font-weight:700}
 
 /* right side */
-#mid{flex:1;min-height:0}
+#mid{flex:1;min-height:0;min-width:0;display:flex;gap:16px}
+.lcol{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
 .tabs{background:#14181D;border-radius:12px;padding:4px;gap:4px}
 .tabs button{padding:7px;font-size:13px;background:transparent;box-shadow:none;border-color:transparent;color:var(--dim)}
 .tabs button.on{background:var(--key);color:var(--ink);box-shadow:none;border-color:#11151A}
 .tp{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}
 .tp[hidden]{display:none}
-.ptz2{flex-direction:row;gap:16px}
-.pcol{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
-.scol{flex:0 0 210px;display:flex;flex-direction:column;gap:8px;min-height:0}
+/* right column: full deck height, button rows share the height so it fits any window */
+.scol{flex:0 0 clamp(170px,19vw,240px);display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden}
+.scol .row{flex:1 1 0;min-height:30px;max-height:52px}
+.scol .row>button{padding:0 6px}
+.scol #evm,.scol #evp{font-size:20px;font-weight:700}
+.scol input[type=range]{flex:0 0 26px;height:26px}
 .gw{flex:1;min-height:0;container-type:size}
 .grid3{--tw:min((100cqw - 16px) / 3,(100cqh - 8px) / 2 * 16 / 9);display:grid;grid-template-columns:repeat(3,var(--tw));grid-auto-rows:calc(var(--tw) * 9 / 16);gap:8px;justify-content:start;align-content:start}
 .pre{position:relative;min-height:0;padding:0;background:#12161B;background-size:cover;background-position:center;overflow:hidden;border:2px solid #2A323B;box-shadow:none}
@@ -128,7 +134,8 @@ button.small{font-size:12px;padding:6px 10px;width:100%;color:var(--dim)}
 .pre:not(.has) span{left:50%;top:50%;transform:translate(-50%,-50%);background:none;font-size:20px;color:var(--dim)}
 .pre.saving{border-color:var(--lamp);box-shadow:0 0 16px rgba(245,174,61,.5)}
 input[type=range]{width:100%;accent-color:var(--frame);height:28px}
-#log{font-size:11px;color:var(--dim);min-height:1.2em;max-height:2.5em;overflow:hidden}
+#log{font-size:11px;color:var(--dim);min-height:1.2em;max-height:2.5em;overflow:hidden;flex:1;min-width:0}
+.foot{display:flex;align-items:center;gap:8px;min-height:24px}
 .tabs #setBtn{flex:0 0 46px;font-size:17px;color:var(--ink);padding:4px}
 
 /* settings sheet */
@@ -155,7 +162,7 @@ input[type=range]{width:100%;accent-color:var(--frame);height:28px}
 #tMode button{font-size:13px}
 #tFields{display:flex;flex-direction:column;gap:10px}
 #tFields[hidden]{display:none}
-#tdot{position:absolute;right:8px;bottom:8px;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;cursor:pointer}
+#tdot{flex:0 0 auto;margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;cursor:pointer}
 #tdot i{width:9px;height:9px;border-radius:50%;background:#555}
 #tdot.ok i{background:var(--pvw-solid);box-shadow:0 0 6px var(--pvw-solid)}
 #tdot.bad i{background:var(--pgm-solid)}
@@ -182,11 +189,11 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
   #panel{padding:8px;gap:10px;margin-top:7px}
   :root{--j:13px;--fr:9px}
   button{padding:6px;font-size:13px}
-  .col,.tp,.pcol,.scol{gap:5px}
-  .scol{flex-basis:170px;overflow-y:auto}
+  .col,.tp,.lcol,.scol{gap:5px}
+  .scol .row{min-height:26px}
   .sec{font-size:11px;margin:0}
   .tabs{padding:2px}.tabs button{padding:4px;font-size:12px}
-  #zoomCol{flex-basis:60px}#zv{font-size:15px}
+  #zv{font-size:13px}
   #ctl #joy,#ctl #pad{width:min(100cqw,100cqh - 36px)}
   #pad{gap:4px}
 }
@@ -214,38 +221,37 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
       <div id="zbar"><i></i></div>
       <div class="rock"><button id="zin">Tele</button><button id="zout">Wide</button></div>
     </div>
-    <div id="mid" class="col">
-      <div class="row tabs"><button class="tab on" data-t="ptz" data-i18n="tabCtl">Ovládanie</button><button class="tab" data-t="img" data-i18n="tabImg">Obraz</button><button id="setBtn" data-i18n-title="settings" aria-label="Nastavenia" title="Nastavenia">⚙︎</button></div>
-      <div class="tp ptz2" data-t="ptz">
-        <div class="pcol">
+    <div id="mid">
+      <div class="lcol">
+        <div class="row tabs"><button class="tab on" data-t="ptz" data-i18n="tabCtl">Ovládanie</button><button class="tab" data-t="img" data-i18n="tabImg">Obraz</button><button id="setBtn" data-i18n-title="settings" aria-label="Nastavenia" title="Nastavenia">⚙︎</button></div>
+        <div class="tp" data-t="ptz">
           <div class="sec"><span data-i18n="presets">Presety</span> <span data-i18n="presetsHint">podrž pre uloženie</span></div>
           <div class="gw"><div class="grid3">
             <button class="pre" data-p="0"><span>1</span></button><button class="pre" data-p="1"><span>2</span></button><button class="pre" data-p="2"><span>3</span></button>
             <button class="pre" data-p="3"><span>4</span></button><button class="pre" data-p="4"><span>5</span></button><button class="pre" data-p="5"><span>6</span></button>
           </div></div>
         </div>
-        <div class="scol">
-          <div class="sec"><span data-i18n="exposure">Expozícia</span> <b id="evv">–</b></div>
-          <button id="aeT">Auto expozícia</button>
-          <div class="row"><button id="evm">− EV</button><button id="evp">+ EV</button></div>
-          <div class="sec" data-i18n="tracking">Sledovanie</div>
-          <div class="row"><button class="ai" data-m="humanTrackingSingleMode" data-i18n="trk1">1 osoba</button><button class="ai" data-m="humanTrackingGroupMode" data-i18n="trkG">Skupina</button></div>
-          <button class="ai" data-m="none" data-i18n="trkOff">Vypnúť sledovanie</button>
-          <div class="sec"><span data-i18n="focus">Ostrenie</span> <b id="fv">–</b></div>
-          <div class="row"><button class="fm" data-f="afc">AF</button><button class="fm" data-f="mf">MF</button><button id="fOne" data-i18n="fOne" data-i18n-title="fOneTitle" title="Zaostriť raz a podržať">Zaostriť</button></div>
-          <div class="row"><button id="fm1" data-i18n="near">− Blízko</button><button id="fp1" data-i18n="far">Ďaleko +</button></div>
-          <div class="sec"><span data-i18n="speed">Rýchlosť pohybu</span> <b id="sv"></b></div>
-          <input id="speed" type="range" min="5" max="100" value="40">
+        <div class="tp" data-t="img" hidden>
+          <div class="sec"><span data-i18n="exposure">Expozícia</span></div>
+          <div class="row"><button id="aeT">Auto expozícia</button></div>
+          <div class="sec"><span data-i18n="wb">Vyváženie bielej</span> <b id="wbv">–</b></div>
+          <div class="row"><button class="wbm" data-m="0">Auto</button><button class="wbk" data-k="3200">3200K</button><button class="wbk" data-k="4600">4600K</button><button class="wbk" data-k="5600">5600K</button></div>
+          <div class="row"><button id="wbm" data-i18n="warmer">Teplejšie −100K</button><button id="wbp" data-i18n="cooler">Studenšie +100K</button></div>
         </div>
+        <div class="foot"><div id="log"></div><div id="tdot" role="button" tabindex="0"><i></i><span>–</span></div></div>
       </div>
-      <div class="tp" data-t="img" hidden>
-        <div class="sec"><span data-i18n="wb">Vyváženie bielej</span> <b id="wbv">–</b></div>
-        <div class="row"><button class="wbm" data-m="0">Auto</button><button class="wbk" data-k="3200">3200K</button><button class="wbk" data-k="4600">4600K</button><button class="wbk" data-k="5600">5600K</button></div>
-        <div class="row"><button id="wbm" data-i18n="warmer">Teplejšie −100K</button><button id="wbp" data-i18n="cooler">Studenšie +100K</button></div>
+      <div class="scol">
+        <div class="sec"><span data-i18n="exposure">Expozícia</span> <b id="evv">–</b></div>
+        <div class="row"><button id="evm">−</button><button id="evp">+</button></div>
+        <div class="sec" data-i18n="tracking">Sledovanie</div>
+        <div class="row"><button class="ai" data-m="humanTrackingSingleMode" data-i18n="trk1">1 osoba</button><button class="ai" data-m="humanTrackingGroupMode" data-i18n="trkG">Skupina</button></div>
+        <div class="sec"><span data-i18n="focus">Ostrenie</span> <b id="fv">–</b></div>
+        <div class="row"><button class="fm" data-f="afc">AF</button><button class="fm" data-f="mf">MF</button><button id="fOne" data-i18n="fOne" data-i18n-title="fOneTitle" title="Zaostriť raz a podržať">Zaostriť</button></div>
+        <div class="row"><button id="fm1" data-i18n="near">− Blízko</button><button id="fp1" data-i18n="far">Ďaleko +</button></div>
+        <div class="sec"><span data-i18n="speed">Rýchlosť pohybu</span> <b id="sv"></b></div>
+        <input id="speed" type="range" min="5" max="100" value="40">
       </div>
-      <div id="log"></div>
     </div>
-    <div id="tdot" role="button" tabindex="0"><i></i><span>–</span></div>
   </div>
 </div>
 <div id="settings"><div class="box">
@@ -284,6 +290,7 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
 <div id="rot" data-i18n="rotate">Otoč zariadenie na šírku</div>
 
 <script>
+const APP_VERSION='0.9';
 // ---------- storage ----------
 const store={get(k,d){try{const v=localStorage.getItem('ptz_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('ptz_'+k,JSON.stringify(v))}catch(e){}}};
 const cfg={three:store.get('three',false),ips:store.get('ips',['192.168.10.171','192.168.10.172','192.168.10.173']),invPan:store.get('invPan',false),invTilt:store.get('invTilt',false),speed:store.get('speed',40),tally:store.get('tally',{mode:'none',bridge:'',inputs:[1,2,3]})};
@@ -344,7 +351,7 @@ function applyI18n(){document.documentElement.lang=LANG;
 function setLang(l){LANG=l;store.set('lang',l);applyI18n();
   if(typeof setCtlMode==='function')setCtlMode(ctl.classList.contains('btns'));
   if(typeof renderImg==='function')renderImg();if(typeof renderGuard==='function')renderGuard();if(typeof renderStatus==='function')renderStatus();
-  if($('#settings').style.display==='flex')$('#codecInfo').textContent=tr('codec',{n:CODEC||tr('codecNo')})}
+  if($('#settings').style.display==='flex')$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')})}
 $$('#langRow button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 applyI18n();
 
@@ -516,7 +523,7 @@ $$('.pre').forEach(b=>{let t=null,saved=false;const id=+b.dataset.p;
 });
 
 // AI tracking
-$$('.ai').forEach(b=>b.addEventListener('click',async()=>{await api(active,'PUT','ai/workmode',{mode:b.dataset.m});$$('.ai').forEach(x=>x.classList.toggle('on',x===b&&b.dataset.m!=='none'))}));
+$$('.ai').forEach(b=>b.addEventListener('click',async()=>{const off=b.classList.contains('on'),m=off?'none':b.dataset.m;await api(active,'PUT','ai/workmode',{mode:m});$$('.ai').forEach(x=>x.classList.toggle('on',!off&&x===b))}));
 
 // joystick / 9 buttons toggle
 const ctl=$('#ctl');
@@ -706,7 +713,7 @@ function renderTallyForm(mode,inputs){setMode=mode;$('#bridgeNote').hidden=!SAME
 $$('#tMode button').forEach(b=>b.onclick=()=>renderTallyForm(b.dataset.m,[0,1,2].map(i=>+$('#tIn'+i).value||cfg.tally.inputs[i])));
 
 // settings
-function openSet(){$('#gOn').checked=cfg.guard.on;$('#gMode').value=cfg.guard.mode;$('#gMode').disabled=!cfg.guard.on;$('#tUrl').value=(cfg.tally.bridge||'').replace(/^https?:\/\//,'');if(EMB)$('#tSwIp').value=(BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.ip)||'';renderTallyForm(cfg.tally.mode,cfg.tally.inputs);$('#ip0').value=cfg.ips[0];$('#ip1').value=cfg.ips[1];$('#ip2').value=cfg.ips[2];$('#three').checked=cfg.three;document.body.classList.toggle('three',cfg.three);$('#invPan').checked=cfg.invPan;$('#invTilt').checked=cfg.invTilt;$('#codecInfo').textContent=tr('codec',{n:CODEC||tr('codecNo')});$('#settings').style.display='flex';renderStatus()}
+function openSet(){$('#gOn').checked=cfg.guard.on;$('#gMode').value=cfg.guard.mode;$('#gMode').disabled=!cfg.guard.on;$('#tUrl').value=(cfg.tally.bridge||'').replace(/^https?:\/\//,'');if(EMB)$('#tSwIp').value=(BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.ip)||'';renderTallyForm(cfg.tally.mode,cfg.tally.inputs);$('#ip0').value=cfg.ips[0];$('#ip1').value=cfg.ips[1];$('#ip2').value=cfg.ips[2];$('#three').checked=cfg.three;document.body.classList.toggle('three',cfg.three);$('#invPan').checked=cfg.invPan;$('#invTilt').checked=cfg.invTilt;$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')});$('#settings').style.display='flex';renderStatus()}
 $('#setBtn').onclick=openSet;$('#closeSet').onclick=()=>$('#settings').style.display='none';
 $('#gOn').onchange=()=>{$('#gMode').disabled=!$('#gOn').checked};
 $('#three').onchange=()=>document.body.classList.toggle('three',$('#three').checked);

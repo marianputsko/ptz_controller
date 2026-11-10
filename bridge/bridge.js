@@ -34,7 +34,7 @@ function qrConsole(text) { // two rows per character with half blocks, white qui
   return lines.join('\n');
 }
 
-const VERSION = '0.1.0';
+const VERSION = '0.9';
 const PORT = Number(process.env.PTZ_PORT) || 8080;
 const DIR = __dirname;
 // Packaged as a Node single executable (Mac app / Windows exe): pages are embedded assets,

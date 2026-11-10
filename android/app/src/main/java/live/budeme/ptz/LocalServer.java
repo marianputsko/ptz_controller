@@ -26,7 +26,7 @@ public final class LocalServer {
         byte[] asset(String path) throws Exception; // null when missing
     }
 
-    public static final String VERSION = "0.1.0";
+    public static final String VERSION = "0.9";
     private final int port;
     private final Store store;
     private final Tally tally = new Tally();
