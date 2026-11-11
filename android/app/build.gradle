@@ -16,23 +16,28 @@ android {
         versionName "0.9.${runNumber}"
     }
 
+    // Release key is private: CI decodes it from the GitHub secret PTZ_KEYSTORE_B64 into PTZ_KEYSTORE,
+    // the password comes from the secret PTZ_KEYSTORE_PASSWORD. Without them the build is debug-signed.
+    def ks = System.getenv('PTZ_KEYSTORE')
+    def ksPass = System.getenv('PTZ_KEYSTORE_PASSWORD')
+    def hasKey = ks && ksPass && file(ks).exists()
+
     signingConfigs {
-        release {
-            // Fixed key so every new build installs over the previous one (settings stay).
-            storeFile file('ptz-controller.keystore')
-            storePassword 'ptzcontroller'
-            keyAlias 'ptz'
-            keyPassword 'ptzcontroller'
+        if (hasKey) {
+            release {
+                storeFile file(ks)
+                storeType 'pkcs12'
+                storePassword ksPass
+                keyAlias 'ptz-release'
+                keyPassword ksPass
+            }
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
-        }
-        debug {
-            signingConfig signingConfigs.release
+            signingConfig hasKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 

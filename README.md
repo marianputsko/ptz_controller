@@ -31,4 +31,4 @@ A controller for **OBSBOT Tail 2** PTZ cameras on a tablet, with live previews, 
 
 ## Podpisový kľúč / Signing key
 
-`android/app/ptz-controller.keystore` je v repozitári zámerne, aby sa každá nová verzia nainštalovala cez predchádzajúcu bez straty nastavení. Je to hobby projekt mimo Google Play.
+APK je podpísané súkromným kľúčom putsko.com, s.r.o. (SHA-256 `5E:2E:4B:C5:BC:6C:60:23:F4:83:A9:06:9F:35:18:04:8D:08:69:22:28:B2:A3:8A:0B:69:B6:E8:BE:AB:D1:A1`). Kľúč nie je v repozitári, zostavenie ho berie z GitHub secrets `PTZ_KEYSTORE_B64` a `PTZ_KEYSTORE_PASSWORD`. Verzie do 0.9.11 boli podpísané starým verejným kľúčom – pri prechode na novšiu verziu treba aplikáciu raz odinštalovať.

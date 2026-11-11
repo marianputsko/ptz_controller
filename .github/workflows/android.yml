@@ -35,9 +35,23 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets/www
           cp ptz.html android/app/src/main/assets/www/index.html
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.PTZ_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.PTZ_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then echo "::error::Missing secrets PTZ_KEYSTORE_B64 / PTZ_KEYSTORE_PASSWORD"; exit 1; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/ptz-release.p12"
+          echo "PTZ_KEYSTORE=$RUNNER_TEMP/ptz-release.p12" >> "$GITHUB_ENV"
       - name: Build APK
         working-directory: android
-        run: gradle --no-daemon assembleRelease
+        env:
+          PTZ_KEYSTORE_PASSWORD: ${{ secrets.PTZ_KEYSTORE_PASSWORD }}
+        run: |
+          gradle --no-daemon assembleRelease
+          SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          "$SIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | tee signer.txt | grep -i "SHA-256"
+          grep -qi "5e2e4bc5bc6c6023f483a9069f3518048d08692228b2a38a0b69b6e8beabd1a1" signer.txt
       - run: cp android/app/build/outputs/apk/release/app-release.apk PTZ-Controller.apk
       - uses: actions/upload-artifact@v4
         with:
