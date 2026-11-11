@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
     private static LocalServer server; // one per process, survives activity recreation
     private WebView web;
     private Updater updater;
+    private GamepadBridge gamepad;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override protected void onCreate(Bundle state) {
@@ -59,6 +60,7 @@ public class MainActivity extends Activity {
             }
         });
         updater = new Updater(this, web);
+        gamepad = new GamepadBridge(web);
         web.addJavascriptInterface(updater, "PTZApp");
         setContentView(web);
         hideBars();
@@ -97,6 +99,16 @@ public class MainActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         }
+    }
+
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        if (gamepad != null && gamepad.onKey(e)) return true;
+        return super.dispatchKeyEvent(e);
+    }
+
+    @Override public boolean dispatchGenericMotionEvent(android.view.MotionEvent e) {
+        if (gamepad != null && gamepad.onMotion(e)) return true;
+        return super.dispatchGenericMotionEvent(e);
     }
 
     @Override public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideBars(); }

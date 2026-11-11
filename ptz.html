@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>PTZ Beta</title>
+<title>PTZ Controller</title>
 <style>
 /* Studio control surface: graphite body, backlit keys, tally owns red/green */
 :root{
@@ -138,6 +138,17 @@ input[type=range]{width:100%;accent-color:var(--frame);height:28px}
 #log{font-size:11px;color:var(--dim);min-height:1.2em;max-height:2.5em;overflow:hidden;flex:1;min-width:0}
 .foot{display:flex;align-items:center;gap:8px;min-height:24px}
 .tabs #setBtn{flex:0 0 46px;font-size:17px;color:var(--ink);padding:4px;position:relative}
+/* gamepad mode: 4 presets laid out like the Y / X / B / A buttons */
+body.gp .grid3{grid-template-areas:"x y b" "x a b";justify-content:center}
+body.gp .pre[data-p="0"]{grid-area:a}body.gp .pre[data-p="1"]{grid-area:b}body.gp .pre[data-p="2"]{grid-area:x}body.gp .pre[data-p="3"]{grid-area:y}
+body.gp .pre[data-p="1"],body.gp .pre[data-p="2"]{align-self:center;height:calc(var(--tw) * 9 / 16)}
+body.gp .pre[data-p="4"],body.gp .pre[data-p="5"]{display:none}
+body.gp .pre span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;border:2px solid #F4F6F8;background:rgba(0,0,0,.6);color:#F4F6F8;padding:0}
+.pre.gpHit{outline:3px solid var(--lamp);outline-offset:-3px}
+.gpPress{background:var(--lamp)!important;color:var(--lamp-ink)!important;border-color:#9C6614!important}
+.pre .gpFill{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--lamp);pointer-events:none}
+#gpName{color:var(--ink)}#gpName.off{color:var(--dim)}
+.gphelp{font-size:12px;color:var(--dim);line-height:1.5}
 #setBtn.upd::after{content:"";position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
 .updline{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim);flex-wrap:wrap}
 .updline #updMsg{color:var(--ink)}
@@ -230,7 +241,7 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
       <div class="lcol">
         <div class="row tabs"><button class="tab on" data-t="ptz" data-i18n="tabCtl">Ovládanie</button><button class="tab" data-t="img" data-i18n="tabImg">Obraz</button><button id="setBtn" data-i18n-title="settings" aria-label="Nastavenia" title="Nastavenia">⚙︎</button></div>
         <div class="tp" data-t="ptz">
-          <div class="sec"><span data-i18n="presets">Presety</span> <span data-i18n="presetsHint">podrž pre uloženie</span></div>
+          <div class="sec"><span data-i18n="presets">Presety</span> <span id="gpName" hidden></span><span data-i18n="presetsHint" id="preHint">podrž pre uloženie</span></div>
           <div class="gw"><div class="grid3">
             <button class="pre" data-p="0"><span>1</span></button><button class="pre" data-p="1"><span>2</span></button><button class="pre" data-p="2"><span>3</span></button>
             <button class="pre" data-p="3"><span>4</span></button><button class="pre" data-p="4"><span>5</span></button><button class="pre" data-p="5"><span>6</span></button>
@@ -270,6 +281,9 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
         <div id="ip2Box"><label data-i18n="ipCam" data-n="3">IP kamery 3</label><input type="text" id="ip2" inputmode="decimal"></div>
         <label class="chk"><input type="checkbox" id="invPan"> <span data-i18n="invPan">Obrátiť smer pan (vľavo/vpravo)</span></label>
         <label class="chk"><input type="checkbox" id="invTilt"> <span data-i18n="invTilt">Obrátiť smer tilt (hore/dole)</span></label></section>
+      <section class="sblk" id="gpBox"><label data-i18n="gp">Gamepad</label>
+        <label class="chk"><input type="checkbox" id="gpOn"> <span data-i18n="gpOn">Používam gamepad</span></label>
+        <div class="gphelp" id="gpHelp"></div></section>
       <section class="sblk" id="updBox"><label data-i18n="upd">Aktualizácie</label>
         <label class="chk"><input type="checkbox" id="updOn"> <span data-i18n="updOn">Kontrolovať aktualizácie (raz denne, len upozorní)</span></label>
         <div class="updline"><span id="updCur"></span><span id="updMsg"></span></div>
@@ -311,9 +325,9 @@ if(!cfg.three)$('.cam[data-i="2"]').remove();
 // ---------- language (SK / EN) ----------
 const I18N={
  sk:{cam:'Kamera {n}',toButtons:'Prepnúť na tlačidlá',toJoy:'Prepnúť na joystick',tabCtl:'Ovládanie',tabImg:'Obraz',settings:'Nastavenia',
-  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
+  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',gp:'Gamepad',gpOn:'Používam gamepad',gpNone:'🎮 gamepad nepripojený – stlač naň ľubovoľné tlačidlo',gpHelp:'A B X Y = presety · ľavá palička = pohyb · LT / RT alebo pravá palička ↑ ↓ = zoom · pravá palička ← → = rýchlosť · podrž A B X Y = uložiť preset · LB / RB = kamera · D-pad ← → = expozícia − / + · D-pad ↑ = AF, ↓ = MF · klik pravou paličkou = zaostriť',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
   tracking:'Sledovanie',trk1:'1 osoba',trkG:'Skupina',trkOff:'Vypnúť sledovanie',focus:'Ostrenie',fOne:'Zaostriť',fOneTitle:'Zaostriť raz a podržať',
-  near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
+  near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu a zoomu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
   wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',
   useThird:'Používať tretiu kameru',invPan:'Obrátiť smer pan (vľavo/vpravo)',invTilt:'Obrátiť smer tilt (hore/dole)',guard:'Ochrana LIVE kamery',gOn:'Zapnúť ochranu',
   gWarn:'Upozorniť, že kamera je LIVE',gNopre:'Vypnúť presety pri LIVE',gLock:'Úplný zámok',expTools:'Kontrola expozície',tallySig:'Tally signalizácia',tNone:'Bez tally',
@@ -330,9 +344,9 @@ const I18N={
   rCamNoVid:'Kamera {n}: ovládanie ide, obraz nie',rCamNoVidCodec:'Tento prehliadač nevie zobraziť obraz (H.265).',rCamNoVidSecure:'Prehliadač púšťa dekodér videa len na zabezpečenej adrese. Na tomto počítači otvor http://localhost:8080.',rCamNoVidAndroid:'Chrome púšťa dekodér videa len na zabezpečenej adrese. Otvor chrome://flags/#unsafely-treat-insecure-origin-as-secure, vlož {n}, zapni Enabled a daj Relaunch.',
   rCamNoVidBusy:'Kamera púšťa náhľad len jednému zariadeniu – zatvor jej Web UI alebo iný tablet.',rCamNoApi:'Kamera {n}: obraz ide, ovládanie nie',rCamNoApiD:'Ovládanie na {p} neodpovedá.',rCamConn:'Kamera {n}: pripájam…',allOk:'Všetko pripojené'},
  en:{cam:'Camera {n}',toButtons:'Switch to buttons',toJoy:'Switch to joystick',tabCtl:'Control',tabImg:'Image',settings:'Settings',
-  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
+  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',gp:'Gamepad',gpOn:'Use a gamepad',gpNone:'🎮 no gamepad – press any button on it',gpHelp:'A B X Y = presets · left stick = pan/tilt · LT / RT or right stick ↑ ↓ = zoom · right stick ← → = speed · hold A B X Y = save preset · LB / RB = camera · D-pad ← → = exposure − / + · D-pad ↑ = AF, ↓ = MF · right stick click = focus',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
   tracking:'Tracking',trk1:'1 person',trkG:'Group',trkOff:'Stop tracking',focus:'Focus',fOne:'Focus once',fOneTitle:'Focus once and hold',
-  near:'− Near',far:'Far +',afOnce:'AF once',speed:'Movement speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
+  near:'− Near',far:'Far +',afOnce:'AF once',speed:'Pan, tilt & zoom speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
   wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',
   useThird:'Use a third camera',invPan:'Invert pan (left/right)',invTilt:'Invert tilt (up/down)',guard:'On-air protection',gOn:'Enable protection',
   gWarn:'Warn that the camera is LIVE',gNopre:'Disable presets while LIVE',gLock:'Full lock',expTools:'Exposure tools',tallySig:'Tally',tNone:'No tally',
@@ -356,7 +370,7 @@ function applyI18n(){document.documentElement.lang=LANG;
   $$('[data-i18n]').forEach(el=>{el.textContent=tr(el.dataset.i18n,{n:el.dataset.n})});
   $$('[data-i18n-title]').forEach(el=>{el.title=tr(el.dataset.i18nTitle);el.setAttribute('aria-label',el.title)});
   $$('#langRow button').forEach(b=>b.classList.toggle('on',b.dataset.l===LANG))}
-function setLang(l){LANG=l;store.set('lang',l);applyI18n();try{renderUpd()}catch(e){}
+function setLang(l){LANG=l;store.set('lang',l);applyI18n();try{renderGp()}catch(e){}try{renderUpd()}catch(e){}
   if(typeof setCtlMode==='function')setCtlMode(ctl.classList.contains('btns'));
   if(typeof renderImg==='function')renderImg();if(typeof renderGuard==='function')renderGuard();if(typeof renderStatus==='function')renderStatus();
   if($('#settings').style.display==='flex')$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')})}
@@ -502,13 +516,14 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&jId!==null
 // zoom (hold buttons)
 const zoom=[1,1,1];let zT=null;
 function updateZoomLabel(){$('#zv').textContent=zoom[active].toFixed(1)+'×';$('#zbar i').style.width=((zoom[active]-1)/11*100)+'%'}
+const zoomRate=()=>+(0.3*cfg.speed/40).toFixed(2); // zoom follows the same speed slider as pan/tilt (40 = previous fixed step)
 function zoomStep(d){zoom[active]=Math.min(12,Math.max(1,+(zoom[active]+d).toFixed(2)));updateZoomLabel();api(active,'PUT','ptz/zoom',{ratio:zoom[active],speed:10})}
 function holdZoom(btn,d){
-  const start=e=>{e.preventDefault();zoomStep(d);clearInterval(zT);zT=setInterval(()=>zoomStep(d),180)};
+  const start=e=>{e.preventDefault();zoomStep(d*zoomRate());clearInterval(zT);zT=setInterval(()=>zoomStep(d*zoomRate()),180)};
   const end=()=>{clearInterval(zT);zT=null};
   btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
 }
-holdZoom($('#zin'),0.3);holdZoom($('#zout'),-0.3);
+holdZoom($('#zin'),1);holdZoom($('#zout'),-1);
 
 // presets: tap = call, hold 1s = save (+ thumbnail from preview)
 const thumbKey=(i,id)=>'thumb_'+cfg.ips[i]+'_'+id;
@@ -787,6 +802,77 @@ $('#updGo').onclick=()=>{
   if(SAME&&!EMB){updNote=tr('updBridge');renderUpd();return}
   window.open('https://github.com/'+UPD_REPO+'/releases/latest/download/ptz.html','_blank')};
 renderUpd();setTimeout(()=>checkUpd(false),5000);
+
+// ---- gamepad: any controller Android/Chrome exposes with the standard (Xbox-like) layout ----
+cfg.gamepad=store.get('gamepad',false);
+const GP_BTN={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,RS:11,UP:12,DOWN:13,LEFT:14,RIGHT:15};
+const GP_PRE={0:0,1:1,2:2,3:3}; // A→preset 1, B→2, X→3, Y→4 (tiles are laid out like the buttons)
+let NPAD=null; // gamepad state pushed by the Android app
+window.ptzNativePad=st=>{const first=!NPAD||NPAD.id!==st.name;NPAD={id:st.name||'Gamepad',index:-1,mapping:'standard',connected:true,axes:st.axes||[0,0,0,0],buttons:(st.buttons||[]).map(v=>({pressed:v>0.5,value:v}))};if(first)renderGp()};
+let gpIdx=null,gpPrev=[],gpMoving=false,gpLastZoom=0,gpLastWarn=0,gpLastSpeed=0;const gpHold={};const GP_SAVE_MS=1500;
+const gpName=p=>p?String(p.id).replace(/\s*\(.*$/,'').trim()||'Gamepad':'';
+function renderGp(){
+  document.body.classList.toggle('gp',cfg.gamepad);$('#gpOn').checked=cfg.gamepad;$('#gpHelp').textContent=tr('gpHelp');
+  const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];const p=NPAD||pads.find(q=>q.index===gpIdx)||pads[0];
+  const n=$('#gpName');n.hidden=!cfg.gamepad;$('#preHint').hidden=cfg.gamepad;
+  n.textContent=p?'🎮 '+gpName(p):tr('gpNone');n.className=p?'':'off';
+  $$('.pre').forEach(b=>{const id=+b.dataset.p;b.querySelector('span').textContent=cfg.gamepad&&id<4?['A','B','X','Y'][id]:String(id+1)})}
+$('#gpOn').onchange=()=>{cfg.gamepad=$('#gpOn').checked;store.set('gamepad',cfg.gamepad);if(!cfg.gamepad&&gpMoving){gpMoving=false;stopMove()}renderGp()};
+window.addEventListener('gamepadconnected',e=>{if(e.gamepad)gpIdx=e.gamepad.index;renderGp()});
+window.addEventListener('gamepaddisconnected',e=>{if(!e.gamepad||e.gamepad.index===gpIdx){gpIdx=null;if(gpMoving){gpMoving=false;stopMove()}}renderGp()});
+// LIVE protection applies to the gamepad the same way as to touch
+function gpAllowed(kind){
+  if(!cfg.guard.on||!isLive())return true;
+  const blocked=blockedKinds().includes(kind),now=Date.now();
+  if(blocked){if(now-gpLastWarn>1000){gpLastWarn=now;flashBan()}return false}
+  if(now-warnedAt>4000){warnedAt=now;flashBan()}
+  return true}
+function gpFlash(sel,ms=250){const e=typeof sel==='string'?$(sel):sel;if(!e)return;e.classList.add('gpPress');clearTimeout(e._gpT);e._gpT=setTimeout(()=>e.classList.remove('gpPress'),ms)}
+function gpFill(id,f){const b=$('.pre[data-p="'+id+'"]');if(!b)return;let el=b.querySelector('.gpFill');if(!el){el=document.createElement('i');el.className='gpFill';b.appendChild(el)}el.style.width=(f*100)+'%';if(!f)el.remove()}
+async function gpSavePreset(id){const i=active,b=$('.pre[data-p="'+id+'"]');b.classList.add('saving');saveThumb(i,id);renderPresets();
+  await api(i,'PUT','ptz/preset',{operation:'set',id,name:btoa('Preset '+(id+1))});log(tr('presetSaved',{n:i+1,p:id+1}));setTimeout(()=>b.classList.remove('saving'),600)}
+function gpHit(id){const b=$('.pre[data-p="'+id+'"]');if(!b)return;b.classList.add('gpHit');setTimeout(()=>b.classList.remove('gpHit'),350)}
+function gpLoop(){
+  requestAnimationFrame(gpLoop);
+  if(!cfg.gamepad||document.hidden)return;
+  let p=NPAD;
+  if(!p&&navigator.getGamepads){const pads=navigator.getGamepads();p=gpIdx!=null?pads[gpIdx]:null;
+    if(!p){for(const q of pads)if(q){p=q;gpIdx=q.index;renderGp();break}}}
+  if(!p)return;
+  const val=i=>p.buttons[i]?p.buttons[i].value:0,down=i=>!!(p.buttons[i]&&p.buttons[i].pressed),edge=i=>down(i)&&!gpPrev[i];
+  // pan / tilt: left stick, speed follows deflection (same path as the on-screen joystick)
+  const x=p.axes[0]||0,y=p.axes[1]||0,act=Math.hypot(x,y)>0.15;
+  if(jId===null){
+    if(act&&gpAllowed('move')){gpMoving=true;jx=x;jy=y;drawKnob();if(!sendT){sendMove();sendT=setInterval(sendMove,120)}}
+    else if(gpMoving){gpMoving=false;stopMove()}
+  }
+  // right stick: only the axis pushed further counts (up/down = zoom, left/right = speed)
+  const rx=p.axes[2]||0,ry=-(p.axes[3]||0),rsZoom=Math.abs(ry)>=Math.abs(rx);
+  // zoom: RT tele / LT wide (analog), or right stick up/down; speed follows the speed slider
+  let z=val(GP_BTN.RT)-val(GP_BTN.LT);if(rsZoom&&Math.abs(ry)>Math.abs(z))z=ry;
+  if(Math.abs(z)>0.12&&Date.now()-gpLastZoom>180&&gpAllowed('move')){gpLastZoom=Date.now();zoomStep(+(z*1.5*zoomRate()).toFixed(2));gpFlash(z>0?'#zin':'#zout',260)}
+  // speed: right stick left/right moves the slider
+  if(!rsZoom&&Math.abs(rx)>0.2&&Date.now()-gpLastSpeed>70){gpLastSpeed=Date.now();
+    const v=Math.min(100,Math.max(5,cfg.speed+Math.round(rx*3)));if(v!==cfg.speed){cfg.speed=v;sp.value=v;sv.textContent=v;store.set('speed',v)}}
+  // presets: short press = recall (on release), hold = save
+  for(const k in GP_PRE){const id=GP_PRE[k],bi=+k,h=gpHold[id];
+    if(edge(bi)){gpHold[id]=gpAllowed('pre')?{t:Date.now(),saved:false}:null;continue}
+    if(!h)continue;
+    if(down(bi)){if(!h.saved){const f=Math.min(1,(Date.now()-h.t)/GP_SAVE_MS);gpFill(id,f);if(f>=1){h.saved=true;gpFill(id,0);gpHit(id);gpSavePreset(id)}}}
+    else{gpFill(id,0);if(!h.saved&&gpAllowed('pre')){gpHit(id);api(active,'PUT','ptz/preset',{operation:'call',id})}gpHold[id]=null}}
+  // cameras
+  if(edge(GP_BTN.LB)){for(const id in gpHold){gpHold[id]=null;gpFill(id,0)}setActive((active-1+camEls.length)%camEls.length)}
+  if(edge(GP_BTN.RB)){for(const id in gpHold){gpHold[id]=null;gpFill(id,0)}setActive((active+1)%camEls.length)}
+  // image
+  // D-pad: ← / → exposure − / +, ↑ AF, ↓ MF
+  if(edge(GP_BTN.RIGHT)&&gpAllowed('img')){evStep(1);gpFlash('#evp')}
+  if(edge(GP_BTN.LEFT)&&gpAllowed('img')){evStep(-1);gpFlash('#evm')}
+  if(edge(GP_BTN.UP)&&gpAllowed('img')){setFocus({focus_mode:'afc'});gpFlash('.fm[data-f="afc"]')}
+  if(edge(GP_BTN.DOWN)&&gpAllowed('img')){setFocus({focus_mode:'mf'});gpFlash('.fm[data-f="mf"]')}
+  if(edge(GP_BTN.RS)&&gpAllowed('img')){$('#fOne').click();gpFlash('#fOne')}
+  gpPrev=p.buttons.map(b=>b.pressed);
+}
+renderGp();requestAnimationFrame(gpLoop);
 </script>
 </body>
 </html>

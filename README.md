@@ -1,6 +1,6 @@
 # PTZ Controller
 
-Ovládač pre PTZ kamery **OBSBOT Tail 2** z tabletu: živé náhľady, joystick, zoom, presety s náhľadom záberu, expozícia, ostrenie, vyváženie bielej, histogram, zebra a tally z réžie **Blackmagic ATEM**, **vMix** a **OSEE GoStream**. Zdarma, bez cloudu, všetko v lokálnej sieti.
+Ovládač pre PTZ kamery **OBSBOT Tail 2** z tabletu: živé náhľady, joystick alebo gamepad (Xbox a iné), zoom, presety s náhľadom záberu, expozícia, ostrenie, vyváženie bielej, histogram, zebra a tally z réžie **Blackmagic ATEM**, **vMix** a **OSEE GoStream**. Zdarma, bez cloudu, všetko v lokálnej sieti.
 
 A controller for **OBSBOT Tail 2** PTZ cameras on a tablet, with live previews, presets with thumbnails, image controls and tally from ATEM, vMix and OSEE GoStream. Free, no cloud, local network only.
 
