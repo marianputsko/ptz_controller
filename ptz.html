@@ -520,14 +520,25 @@ function updateZoomLabel(){$('#zv').textContent=zoom[active].toFixed(1)+'×';$('
 // and on release stop it where it actually is (GET current ratio, then PUT that ratio).
 // Camera zoom speed is 0–10; it follows the shared speed slider (5–100), 40 ≈ 5.
 const zoomSpeed=(f=1)=>Math.max(1,Math.min(10,Math.round((1+cfg.speed*9/100)*f)));
-let zDir=0,zSpd=0,zCam=-1;
+const ZRATE=0.085; // measured on Tail 2: ≈ 0.085× per second per speed step (speed 5 ≈ 0.4×/s, speed 10 ≈ 0.85×/s)
+let zDir=0,zSpd=0,zCam=-1,zRamp=[],zLast={r:1,t:0};
+function zoomPut(i,ratio,sp){api(i,'PUT','ptz/zoom',{ratio:+Math.min(12,Math.max(1,ratio)).toFixed(2),speed:sp})}
 function zoomStart(d,f=1){const sp=zoomSpeed(f);if(zDir===d&&zSpd===sp&&zCam===active)return;
-  zDir=d;zSpd=sp;zCam=active;api(active,'PUT','ptz/zoom',{ratio:d>0?12:1,speed:sp});
-  clearInterval(zT);zT=setInterval(()=>readZoom(zCam),300)}
+  const fresh=zDir!==d||zCam!==active;zDir=d;zSpd=sp;zCam=active;
+  zRamp.forEach(clearTimeout);zRamp=[];
+  if(fresh){ // soft start: ramp up to the chosen speed over ~0.3 s
+    zLast={r:zoom[active],t:Date.now()};readZoom(active);
+    const steps=[Math.max(1,Math.round(sp/3)),Math.max(1,Math.round(sp*2/3)),sp];
+    steps.forEach((v,k)=>zRamp.push(setTimeout(()=>{if(zDir===d&&zCam===active)zoomPut(active,d>0?12:1,v)},k*120)));
+  }else zoomPut(active,d>0?12:1,sp);
+  clearInterval(zT);zT=setInterval(()=>readZoom(zCam),250)}
 async function readZoom(i){try{const r=await fetch(`http://${cfg.ips[i]}/camera/sdk/ptz/zoom`,{cache:'no-store'});const j=await r.json();
-  if(typeof j.ratio==='number'){zoom[i]=j.ratio;if(i===active)updateZoomLabel()}return j.ratio}catch(e){return null}}
-async function zoomStop(){if(!zDir)return;const i=zCam;zDir=0;zSpd=0;zCam=-1;clearInterval(zT);zT=null;
-  const cur=await readZoom(i);if(typeof cur==='number')api(i,'PUT','ptz/zoom',{ratio:cur,speed:10})}
+  if(typeof j.ratio==='number'){zoom[i]=j.ratio;if(i===zCam)zLast={r:j.ratio,t:Date.now()};if(i===active)updateZoomLabel()}return j.ratio}catch(e){return null}}
+function zoomStop(){if(!zDir)return;const i=zCam,d=zDir,sp=zSpd;zDir=0;zSpd=0;zCam=-1;zRamp.forEach(clearTimeout);zRamp=[];clearInterval(zT);zT=null;
+  // soft stop without stepping back: estimate where the camera is now, let it coast a little further at half speed
+  const rate=ZRATE*sp,now=Date.now(),est=zLast.r+d*rate*Math.min(1,(now-zLast.t)/1000),target=est+d*rate*0.25;
+  zoomPut(i,target,Math.max(1,Math.round(sp/2)));zoom[i]=Math.min(12,Math.max(1,target));if(i===active)updateZoomLabel();
+  setTimeout(()=>readZoom(i),900)}
 function holdZoom(btn,d){
   const start=e=>{e.preventDefault();zoomStart(d)};
   btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,()=>zoomStop()));
