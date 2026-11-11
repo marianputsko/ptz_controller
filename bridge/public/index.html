@@ -484,7 +484,7 @@ setInterval(()=>{zPhase=(zPhase+1)&7;views.forEach(analyze)},200);
 let active=0;
 const camEls=$$('.cam');camEls.forEach((el,i)=>{el.classList.toggle('notfirst',i>0);el.classList.toggle('notlast',i<camEls.length-1)});const views=camEls.map((el,i)=>new CamView(i,el));
 function setActive(i){
-  if(i!==active)stopMove();
+  if(i!==active){stopMove();if(zDir)zoomStop()}
   active=i;camEls.forEach((el,k)=>el.classList.toggle('active',k===i));
   $('#panel').className='l'+i+(i===0?' first':'')+(i===camEls.length-1?' last':'');if(typeof renderGuard==='function')renderGuard();updateZoomLabel();renderImg();loadImg(i);renderPresets();
 }
@@ -516,12 +516,21 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&jId!==null
 // zoom (hold buttons)
 const zoom=[1,1,1];let zT=null;
 function updateZoomLabel(){$('#zv').textContent=zoom[active].toFixed(1)+'×';$('#zbar i').style.width=((zoom[active]-1)/11*100)+'%'}
-const zoomRate=()=>+(0.3*cfg.speed/40).toFixed(2); // zoom follows the same speed slider as pan/tilt (40 = previous fixed step)
-function zoomStep(d){zoom[active]=Math.min(12,Math.max(1,+(zoom[active]+d).toFixed(2)));updateZoomLabel();api(active,'PUT','ptz/zoom',{ratio:zoom[active],speed:10})}
+// Zoom runs only while held: send the camera toward the end of the range at the chosen speed,
+// and on release stop it where it actually is (GET current ratio, then PUT that ratio).
+// Camera zoom speed is 0–10; it follows the shared speed slider (5–100), 40 ≈ 5.
+const zoomSpeed=(f=1)=>Math.max(1,Math.min(10,Math.round((1+cfg.speed*9/100)*f)));
+let zDir=0,zSpd=0,zCam=-1;
+function zoomStart(d,f=1){const sp=zoomSpeed(f);if(zDir===d&&zSpd===sp&&zCam===active)return;
+  zDir=d;zSpd=sp;zCam=active;api(active,'PUT','ptz/zoom',{ratio:d>0?12:1,speed:sp});
+  clearInterval(zT);zT=setInterval(()=>readZoom(zCam),300)}
+async function readZoom(i){try{const r=await fetch(`http://${cfg.ips[i]}/camera/sdk/ptz/zoom`,{cache:'no-store'});const j=await r.json();
+  if(typeof j.ratio==='number'){zoom[i]=j.ratio;if(i===active)updateZoomLabel()}return j.ratio}catch(e){return null}}
+async function zoomStop(){if(!zDir)return;const i=zCam;zDir=0;zSpd=0;zCam=-1;clearInterval(zT);zT=null;
+  const cur=await readZoom(i);if(typeof cur==='number')api(i,'PUT','ptz/zoom',{ratio:cur,speed:10})}
 function holdZoom(btn,d){
-  const start=e=>{e.preventDefault();zoomStep(d*zoomRate());clearInterval(zT);zT=setInterval(()=>zoomStep(d*zoomRate()),180)};
-  const end=()=>{clearInterval(zT);zT=null};
-  btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
+  const start=e=>{e.preventDefault();zoomStart(d)};
+  btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,()=>zoomStop()));
 }
 holdZoom($('#zin'),1);holdZoom($('#zout'),-1);
 
@@ -641,7 +650,7 @@ let warnedAt=0;
   if(blockedKinds().includes(k)){e.stopImmediatePropagation();e.preventDefault();if(ev==='pointerdown')flashBan();return}
   if(ev==='pointerdown'&&Date.now()-warnedAt>4000){warnedAt=Date.now();flashBan()}
 },true));
-function guardOnTallyChange(){renderGuard();if(blockedKinds().includes('move')){if(sendT||jId!==null){jId=null;stopMove()}if(zT){clearInterval(zT);zT=null}}
+function guardOnTallyChange(){renderGuard();if(blockedKinds().includes('move')){if(sendT||jId!==null){jId=null;stopMove()}if(zDir)zoomStop()}
   if(blockedKinds().includes('img')&&fT){clearInterval(fT);fT=null}}
 
 // tally: always from the PTZ Bridge program (served from it, or reached at a configured address)
@@ -809,6 +818,7 @@ const GP_BTN={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,RS:11,UP:12,DOWN:13,LEFT:14,RI
 const GP_PRE={0:0,1:1,2:2,3:3}; // A→preset 1, B→2, X→3, Y→4 (tiles are laid out like the buttons)
 let NPAD=null; // gamepad state pushed by the Android app
 window.ptzNativePad=st=>{const first=!NPAD||NPAD.id!==st.name;NPAD={id:st.name||'Gamepad',index:-1,mapping:'standard',connected:true,axes:st.axes||[0,0,0,0],buttons:(st.buttons||[]).map(v=>({pressed:v>0.5,value:v}))};if(first)renderGp()};
+let gpZooming=false;
 let gpIdx=null,gpPrev=[],gpMoving=false,gpLastZoom=0,gpLastWarn=0,gpLastSpeed=0;const gpHold={};const GP_SAVE_MS=1500;
 const gpName=p=>p?String(p.id).replace(/\s*\(.*$/,'').trim()||'Gamepad':'';
 function renderGp(){
@@ -850,7 +860,10 @@ function gpLoop(){
   const rx=p.axes[2]||0,ry=-(p.axes[3]||0),rsZoom=Math.abs(ry)>=Math.abs(rx);
   // zoom: RT tele / LT wide (analog), or right stick up/down; speed follows the speed slider
   let z=val(GP_BTN.RT)-val(GP_BTN.LT);if(rsZoom&&Math.abs(ry)>Math.abs(z))z=ry;
-  if(Math.abs(z)>0.12&&Date.now()-gpLastZoom>180&&gpAllowed('move')){gpLastZoom=Date.now();zoomStep(+(z*1.5*zoomRate()).toFixed(2));gpFlash(z>0?'#zin':'#zout',260)}
+  // analog: how far the trigger/stick is pressed scales the zoom speed; release stops at once
+  if(Math.abs(z)>0.12&&gpAllowed('move')){if(Date.now()-gpLastZoom>150){gpLastZoom=Date.now();zoomStart(z>0?1:-1,Math.abs(z))}gpFlash(z>0?'#zin':'#zout',260)}
+  else if(zDir&&gpZooming){zoomStop()}
+  gpZooming=Math.abs(z)>0.12;
   // speed: right stick left/right moves the slider
   if(!rsZoom&&Math.abs(rx)>0.2&&Date.now()-gpLastSpeed>70){gpLastSpeed=Date.now();
     const v=Math.min(100,Math.max(5,cfg.speed+Math.round(rx*3)));if(v!==cfg.speed){cfg.speed=v;sp.value=v;sv.textContent=v;store.set('speed',v)}}
