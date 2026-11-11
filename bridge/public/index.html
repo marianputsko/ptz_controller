@@ -33,13 +33,17 @@ html,body{margin:0;height:100%;background:var(--body);color:var(--ink);font:500 
 .cam:not(.notfirst){justify-self:start}.cam:not(.notlast){justify-self:end}
 .cam canvas{width:100%;height:100%;object-fit:contain;display:block;border-radius:calc(var(--r) - 3px)}
 .cam .tally{position:absolute;inset:0;border-radius:calc(var(--r) - 3px);pointer-events:none;transition:background .12s}
-.cam.pvw .tally{background:var(--pvw)}
-.cam.pgm .tally{background:var(--pgm)}
+.cam.pvw{--tc:var(--pvw-solid)}.cam.pgm{--tc:var(--pgm-solid)}
+/* tally: thick frame inside the preview, the picture itself stays clean */
+.cam.pvw .tally,.cam.pgm .tally{box-shadow:inset 0 0 0 var(--tf,15px) var(--tc)}
+.cam.pvw .lbl,.cam.pgm .lbl{left:calc(var(--tf,15px) + 12px);top:calc(var(--tf,15px) + 6px)}
+.cam.pvw .st,.cam.pgm .st{right:calc(var(--tf,15px) + 12px);top:calc(var(--tf,15px) + 8px)}
+.cam.pvw .hist,.cam.pgm .hist{right:calc(var(--tf,15px) + 8px);bottom:calc(var(--tf,15px) + 8px)}
 .cam .lbl{position:absolute;left:12px;top:9px;font-size:17px;font-weight:700;letter-spacing:.01em;text-shadow:0 1px 4px #000c}
 .cam .st{position:absolute;right:12px;top:11px;font-size:12px;color:#C9D1D9;text-shadow:0 1px 3px #000c}
-.cam .tb{position:absolute;left:12px;bottom:10px;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;display:none;color:#fff}
-.cam.pvw .tb{display:block;background:var(--pvw-solid)}
-.cam.pgm .tb{display:block;background:var(--pgm-solid)}
+.cam .tb{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--tf,15px) + 8px);font-size:14px;font-weight:800;letter-spacing:.06em;padding:4px 14px;border-radius:999px;display:none;color:#fff;white-space:nowrap;box-shadow:0 2px 10px #0008}
+.cam.pvw .tb,.cam.pgm .tb{display:block;background:var(--tc)}
+@media (max-height:560px){.cam{--tf:10px}.cam .tb{font-size:12px;padding:3px 10px}}
 .cam:not(.active) .lbl{color:#AEB7C1}
 .cam.active{border-color:var(--frame);border-bottom-color:transparent;border-radius:var(--r) var(--r) 0 0;z-index:2}
 .cam.active canvas,.cam.active .tally{border-radius:calc(var(--r) - 3px) calc(var(--r) - 3px) 0 0}
@@ -325,7 +329,7 @@ if(!cfg.three)$('.cam[data-i="2"]').remove();
 // ---------- language (SK / EN) ----------
 const I18N={
  sk:{cam:'Kamera {n}',toButtons:'Prepnúť na tlačidlá',toJoy:'Prepnúť na joystick',tabCtl:'Ovládanie',tabImg:'Obraz',settings:'Nastavenia',
-  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',gp:'Gamepad',gpOn:'Používam gamepad',gpNone:'🎮 gamepad nepripojený – stlač naň ľubovoľné tlačidlo',gpHelp:'A B X Y = presety · ľavá palička = pohyb · LT / RT alebo pravá palička ↑ ↓ = zoom · pravá palička ← → = rýchlosť · podrž A B X Y = uložiť preset · LB / RB = kamera · D-pad ← → = expozícia − / + · D-pad ↑ = AF, ↓ = MF · klik pravou paličkou = zaostriť',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
+  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',tbPgm:'● KAMERA JE LIVE',tbPvw:'KAMERA V NÁHĽADE',gp:'Gamepad',gpOn:'Používam gamepad',gpNone:'🎮 gamepad nepripojený – stlač naň ľubovoľné tlačidlo',gpHelp:'A B X Y = presety · ľavá palička = pohyb · LT / RT alebo pravá palička ↑ ↓ = zoom · pravá palička ← → = rýchlosť · podrž A B X Y = uložiť preset · LB / RB = kamera · D-pad ← → = expozícia − / + · D-pad ↑ = AF, ↓ = MF · klik pravou paličkou = zaostriť',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
   tracking:'Sledovanie',trk1:'1 osoba',trkG:'Skupina',trkOff:'Vypnúť sledovanie',focus:'Ostrenie',fOne:'Zaostriť',fOneTitle:'Zaostriť raz a podržať',
   near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu a zoomu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
   wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',
@@ -344,7 +348,7 @@ const I18N={
   rCamNoVid:'Kamera {n}: ovládanie ide, obraz nie',rCamNoVidCodec:'Tento prehliadač nevie zobraziť obraz (H.265).',rCamNoVidSecure:'Prehliadač púšťa dekodér videa len na zabezpečenej adrese. Na tomto počítači otvor http://localhost:8080.',rCamNoVidAndroid:'Chrome púšťa dekodér videa len na zabezpečenej adrese. Otvor chrome://flags/#unsafely-treat-insecure-origin-as-secure, vlož {n}, zapni Enabled a daj Relaunch.',
   rCamNoVidBusy:'Kamera púšťa náhľad len jednému zariadeniu – zatvor jej Web UI alebo iný tablet.',rCamNoApi:'Kamera {n}: obraz ide, ovládanie nie',rCamNoApiD:'Ovládanie na {p} neodpovedá.',rCamConn:'Kamera {n}: pripájam…',allOk:'Všetko pripojené'},
  en:{cam:'Camera {n}',toButtons:'Switch to buttons',toJoy:'Switch to joystick',tabCtl:'Control',tabImg:'Image',settings:'Settings',
-  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',gp:'Gamepad',gpOn:'Use a gamepad',gpNone:'🎮 no gamepad – press any button on it',gpHelp:'A B X Y = presets · left stick = pan/tilt · LT / RT or right stick ↑ ↓ = zoom · right stick ← → = speed · hold A B X Y = save preset · LB / RB = camera · D-pad ← → = exposure − / + · D-pad ↑ = AF, ↓ = MF · right stick click = focus',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
+  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',tbPgm:'● CAMERA IS LIVE',tbPvw:'CAMERA IN PREVIEW',gp:'Gamepad',gpOn:'Use a gamepad',gpNone:'🎮 no gamepad – press any button on it',gpHelp:'A B X Y = presets · left stick = pan/tilt · LT / RT or right stick ↑ ↓ = zoom · right stick ← → = speed · hold A B X Y = save preset · LB / RB = camera · D-pad ← → = exposure − / + · D-pad ↑ = AF, ↓ = MF · right stick click = focus',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
   tracking:'Tracking',trk1:'1 person',trkG:'Group',trkOff:'Stop tracking',focus:'Focus',fOne:'Focus once',fOneTitle:'Focus once and hold',
   near:'− Near',far:'Far +',afOnce:'AF once',speed:'Pan, tilt & zoom speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
   wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',
@@ -642,7 +646,7 @@ $$('#zebLv button').forEach(b=>b.onclick=()=>setZebraLevel(+b.dataset.z));
 
 // tally: state '' | 'pvw' | 'pgm'
 function setTally(i,st){const el=camEls[i];if(!el)return;el.classList.toggle('pvw',st==='pvw');el.classList.toggle('pgm',st==='pgm');
-  el.querySelector('.tb').textContent=st==='pgm'?'LIVE':st==='pvw'?'PREVIEW':'';if(typeof guardOnTallyChange==='function')guardOnTallyChange()}
+  el.querySelector('.tb').textContent=st==='pgm'?tr('tbPgm'):st==='pvw'?tr('tbPvw'):'';if(typeof guardOnTallyChange==='function')guardOnTallyChange()}
 window.setTally=setTally;
 
 // ---------- LIVE guard ----------
