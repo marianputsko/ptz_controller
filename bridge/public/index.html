@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>PTZ Controller</title>
+<title>PTZ OBSBOT Controller</title>
 <style>
 /* Studio control surface: graphite body, backlit keys, tally owns red/green */
 :root{
@@ -164,15 +164,26 @@ body.gp .pre span{width:28px;height:28px;border-radius:50%;display:grid;place-it
 #settings .shead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #2A323B}
 #settings .shead h2{margin:0}
 #langRow{flex:0 0 auto}#langRow button{padding:6px 14px;font-size:13px}
-#settings .sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 22px;padding:16px 18px;overflow:auto;min-height:0}
-#settings .scolm{display:flex;flex-direction:column;gap:18px;min-width:0}
+#settings .box{width:min(720px,94vw);height:min(700px,94dvh)}
+#settings .sgrid{flex:1 1 auto;padding:16px 18px;overflow:auto;min-height:0}
+#settings .spane{display:none;flex-direction:column;gap:18px;min-width:0}#settings .spane.on{display:flex}
+#settings .sstrip{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px 0}
+#settings .sstrip button{display:flex;align-items:center;gap:8px;padding:6px 12px;min-height:0;border-radius:999px;background:#12161B;border:1px solid #2E3740;box-shadow:none;font-size:13px;color:var(--ink);font-weight:500}
+#settings .sstrip i{width:9px;height:9px;border-radius:50%;background:#555}
+#settings .sstrip i.ok{background:var(--pvw-solid);box-shadow:0 0 6px var(--pvw-solid)}#settings .sstrip i.bad{background:var(--pgm-solid)}#settings .sstrip i.warn{background:var(--lamp)}
+#settings .stabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:12px 18px 0;padding:4px;background:#12161B;border-radius:12px}
+#settings .stabs button{background:none;border:0;box-shadow:none;color:var(--dim);font-weight:600;padding:10px 6px;min-height:0;border-radius:9px}
+#settings .stabs button.on{background:#2A3139;color:var(--ink)}
+#settings .stabs button i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pgm-solid);margin-left:6px;vertical-align:middle}
+#zebRow{display:grid;grid-template-columns:1.4fr 1.4fr 4fr;gap:8px}#zebLv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body:not(.showZebra) #zebLv button{opacity:.4}
+#settings .about{font-size:14px;line-height:1.6;color:var(--ink)}#settings .about small{display:block;color:var(--dim);font-size:13px}
 #settings .sblk{display:flex;flex-direction:column;gap:10px}
 #settings .sblk>label:first-child{font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.02em}
 #settings .sfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #2A323B;background:var(--deck)}
 #settings .sfoot .row{flex:0 0 auto}#settings .sfoot .row button{min-width:130px}
 #codecInfo{font-size:11px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:720px){#settings .sgrid{grid-template-columns:minmax(0,1fr)}}
-@media (max-height:560px){#settings .shead{padding:8px 14px}#settings .sgrid{padding:10px 14px;gap:12px 16px}#settings .scolm{gap:12px}#settings .sfoot{padding:8px 14px}}
+@media (max-height:560px){#settings .shead{padding:8px 14px}#settings .sgrid{padding:10px 14px}#settings .spane{gap:12px}#settings .sstrip{padding:8px 14px 0}#settings .stabs{margin:8px 14px 0}#settings .stabs button{padding:7px 4px}#settings .sfoot{padding:8px 14px}}
 #settings h2{margin:0 0 4px;font-size:17px}
 #settings label{font-size:13px;color:var(--dim)}
 #settings input[type=text]{font:inherit;background:#12161B;color:var(--ink);border:1px solid #2E3740;border-radius:10px;padding:10px;font-size:16px;user-select:text;-webkit-user-select:text}
@@ -264,7 +275,7 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
         <div class="sec" data-i18n="tracking">Sledovanie</div>
         <div class="row"><button class="ai" data-m="humanTrackingSingleMode" data-i18n="trk1">1 osoba</button><button class="ai" data-m="humanTrackingGroupMode" data-i18n="trkG">Skupina</button></div>
         <div class="sec"><span data-i18n="focus">Ostrenie</span> <b id="fv">–</b></div>
-        <div class="row"><button class="fm" data-f="afc">AF</button><button class="fm" data-f="mf">MF</button><button id="fOne" data-i18n="fOne" data-i18n-title="fOneTitle" title="Zaostriť raz a podržať">Zaostriť</button></div>
+        <div class="row"><button class="fm" data-f="afs">AF-S</button><button class="fm" data-f="afc">AF-C</button><button class="fm" data-f="mf">MF</button></div>
         <div class="row"><button id="fm1" data-i18n="near">− Blízko</button><button id="fp1" data-i18n="far">Ďaleko +</button></div>
         <div class="sec"><span data-i18n="speed">Rýchlosť pohybu</span> <b id="sv"></b></div>
         <input id="speed" type="range" min="5" max="100" value="40">
@@ -275,8 +286,10 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
 <div id="settings"><div class="box">
   <div class="shead"><h2 data-i18n="settings">Nastavenia</h2>
     <div class="row" id="langRow" role="group" aria-label="Jazyk / Language"><button type="button" data-l="sk">SK</button><button type="button" data-l="en">EN</button></div></div>
+  <div class="sstrip" id="sstrip"></div>
+  <div class="stabs" role="tablist"><button type="button" data-tab="cam" data-i18n="tabCam">Kamery</button><button type="button" data-tab="sw" data-i18n="tabSw">Réžia</button><button type="button" data-tab="ctl" data-i18n="tabCtl">Ovládanie</button><button type="button" data-tab="app" data-i18n="tabApp">Aplikácia</button></div>
   <div class="sgrid">
-    <div class="scolm">
+    <div class="spane" data-pane="cam">
       <section class="sblk"><label data-i18n="status">Stav pripojenia</label>
         <div class="stat" id="stat"></div></section>
       <section class="sblk"><label data-i18n="cameras">Kamery</label>
@@ -285,16 +298,10 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
         <div id="ip2Box"><label data-i18n="ipCam" data-n="3">IP kamery 3</label><input type="text" id="ip2" inputmode="decimal"></div>
         <label class="chk"><input type="checkbox" id="invPan"> <span data-i18n="invPan">Obrátiť smer pan (vľavo/vpravo)</span></label>
         <label class="chk"><input type="checkbox" id="invTilt"> <span data-i18n="invTilt">Obrátiť smer tilt (hore/dole)</span></label></section>
-      <section class="sblk" id="gpBox"><label data-i18n="gp">Gamepad</label>
-        <label class="chk"><input type="checkbox" id="gpOn"> <span data-i18n="gpOn">Používam gamepad</span></label>
-        <div class="gphelp" id="gpHelp"></div></section>
-      <section class="sblk" id="updBox"><label data-i18n="upd">Aktualizácie</label>
-        <label class="chk"><input type="checkbox" id="updOn"> <span data-i18n="updOn">Kontrolovať aktualizácie (raz denne, len upozorní)</span></label>
-        <div class="updline"><span id="updCur"></span><span id="updMsg"></span></div>
-        <div class="row" id="updBtns"><button id="updGo" class="on" data-i18n="updGo">Aktualizovať</button><button id="updSkip" data-i18n="updSkip">Preskočiť túto verziu</button></div>
-        <div class="row"><button id="updNow" data-i18n="updNow">Skontrolovať teraz</button></div></section>
     </div>
-    <div class="scolm">
+    <div class="spane" data-pane="sw">
+      <section class="sblk"><label data-i18n="status">Stav pripojenia</label>
+        <div class="stat" id="statSw"></div></section>
       <section class="sblk"><label data-i18n="tallySig">Tally signalizácia</label>
         <div class="row" id="tMode"><button data-m="none" data-i18n="tNone">Bez tally</button><button data-m="atem">Blackmagic ATEM</button><button data-m="vmix">vMix</button><button data-m="osee">OSEE GoStream</button></div>
         <div id="tFields">
@@ -303,12 +310,28 @@ body:not(.three) #ip2Box,body:not(.three) .c3{display:none}
           <div id="urlBox"><label data-i18n="bridgeAddr">Adresa počítača s programom PTZ Bridge</label><input type="text" id="tUrl" inputmode="url" placeholder="192.168.10.50:8080"></div>
           <div class="row two"><div><label data-i18n="camIn" data-n="1">Kamera 1 je v réžii</label><select id="tIn0"></select></div><div><label data-i18n="camIn" data-n="2">Kamera 2 je v réžii</label><select id="tIn1"></select></div><div class="c3"><label data-i18n="camIn" data-n="3">Kamera 3 je v réžii</label><select id="tIn2"></select></div></div>
         </div></section>
+    </div>
+    <div class="spane" data-pane="ctl">
+      <section class="sblk" id="gpBox"><label data-i18n="gp">Gamepad</label>
+        <label class="chk"><input type="checkbox" id="gpOn"> <span data-i18n="gpOn">Používam gamepad</span></label>
+        <div class="gphelp" id="gpHelp"></div></section>
       <section class="sblk"><label data-i18n="guard">Ochrana LIVE kamery</label>
         <div id="guardRow"><label class="chk"><input type="checkbox" id="gOn"> <span data-i18n="gOn">Zapnúť ochranu</span></label>
           <select id="gMode"><option value="warn" data-i18n="gWarn">Upozorniť, že kamera je LIVE</option><option value="nopre" data-i18n="gNopre">Vypnúť presety pri LIVE</option><option value="lock" data-i18n="gLock">Úplný zámok</option></select></div></section>
+      <section class="sblk" id="trkBox"><label data-i18n="trkSpeed">Rýchlosť sledovania</label>
+        <select id="trkSel"><option value="" data-i18n="trkKeep">Podľa kamery (Custom)</option><option value="superLazy" data-i18n="trkS1">Najpomalšie</option><option value="lazy" data-i18n="trkS2">Pomalé</option><option value="slow" data-i18n="trkS3">Mierne</option><option value="fast" data-i18n="trkS4">Rýchle</option><option value="crazy" data-i18n="trkS5">Najrýchlejšie</option></select>
+        <div class="gphelp" id="trkNote"></div></section>
       <section class="sblk"><label data-i18n="expTools">Kontrola expozície</label>
-        <div class="row"><button id="histT">Histogram</button><button id="zebT">Zebra</button></div>
-        <div class="row" id="zebLv"><button data-z="75">75 %</button><button data-z="85">85 %</button><button data-z="90">90 %</button><button data-z="95">95 %</button></div></section>
+        <div class="row" id="zebRow"><button id="histT">Histogram</button><button id="zebT">Zebra</button><div class="row" id="zebLv"><button data-z="75">75 %</button><button data-z="85">85 %</button><button data-z="90">90 %</button><button data-z="95">95 %</button></div></div></section>
+    </div>
+    <div class="spane" data-pane="app">
+      <section class="sblk" id="updBox"><label data-i18n="upd">Aktualizácie</label>
+        <label class="chk"><input type="checkbox" id="updOn"> <span data-i18n="updOn">Kontrolovať aktualizácie (raz denne, len upozorní)</span></label>
+        <div class="updline"><span id="updCur"></span><span id="updMsg"></span></div>
+        <div class="row" id="updBtns"><button id="updGo" class="on" data-i18n="updGo">Aktualizovať</button><button id="updSkip" data-i18n="updSkip">Preskočiť túto verziu</button></div>
+        <div class="row"><button id="updNow" data-i18n="updNow">Skontrolovať teraz</button></div></section>
+      <section class="sblk"><label data-i18n="about">O aplikácii</label>
+        <div class="about" id="aboutInfo"></div></section>
     </div>
   </div>
   <div class="sfoot"><div id="codecInfo"></div><div class="row"><button id="closeSet" data-i18n="close">Zavrieť</button><button id="saveSet" class="on" data-i18n="save">Uložiť a pripojiť</button></div></div>
@@ -329,10 +352,10 @@ if(!cfg.three)$('.cam[data-i="2"]').remove();
 // ---------- language (SK / EN) ----------
 const I18N={
  sk:{cam:'Kamera {n}',toButtons:'Prepnúť na tlačidlá',toJoy:'Prepnúť na joystick',tabCtl:'Ovládanie',tabImg:'Obraz',settings:'Nastavenia',
-  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',tbPgm:'● KAMERA JE LIVE',tbPvw:'KAMERA V NÁHĽADE',gp:'Gamepad',gpOn:'Používam gamepad',gpNone:'🎮 gamepad nepripojený – stlač naň ľubovoľné tlačidlo',gpHelp:'A B X Y = presety · ľavá palička = pohyb · LT / RT alebo pravá palička ↑ ↓ = zoom · pravá palička ← → = rýchlosť · podrž A B X Y = uložiť preset · LB / RB = kamera · D-pad ← → = expozícia − / + · D-pad ↑ = AF, ↓ = MF · klik pravou paličkou = zaostriť',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
+  presets:'Presety',presetsHint:'podrž pre uloženie',exposure:'Expozícia',aeAuto:'Auto',aeMan:'Manuál',tbPgm:'● KAMERA JE LIVE',tbPvw:'KAMERA V NÁHĽADE',gp:'Gamepad',gpOn:'Používam gamepad',gpNone:'🎮 gamepad nepripojený – stlač naň ľubovoľné tlačidlo',gpHelp:'A B X Y = presety · ľavá palička = pohyb · LT / RT alebo pravá palička ↑ ↓ = zoom · pravá palička ← → = rýchlosť · podrž A B X Y = uložiť preset · LB / RB = kamera · D-pad ← → = expozícia − / + · D-pad ↑ = AF-C, ↓ = MF · klik pravou paličkou = AF-S',upd:'Aktualizácie',updOn:'Kontrolovať aktualizácie (raz denne, len upozorní)',updCur:'Používaš verziu {n}',updNew:'Nová verzia {n}',updSkipped:'Verzia {n} preskočená',updNone:'Máš najnovšiu verziu',updChecking:'Overujem…',updOffline:'Nedá sa overiť, bez internetu?',updOff:'Kontrola je vypnutá',updNow:'Skontrolovať teraz',updGo:'Aktualizovať',updSkip:'Preskočiť túto verziu',updBridge:'Aktualizuj PTZ Bridge na počítači, z ktorého je ovládač otvorený.',updDl:'Sťahujem aktualizáciu… {n}',updPerm:'Povoľ inštaláciu aplikácií pre PTZ OBSBOT Controller, vráť sa a ťukni znova na Aktualizovať.',updConfirm:'Potvrď aktualizáciu v okne Androidu.',updErr:'Aktualizácia zlyhala: {n}',
   tracking:'Sledovanie',trk1:'1 osoba',trkG:'Skupina',trkOff:'Vypnúť sledovanie',focus:'Ostrenie',fOne:'Zaostriť',fOneTitle:'Zaostriť raz a podržať',
   near:'− Blízko',far:'Ďaleko +',afOnce:'AF jednorazovo',speed:'Rýchlosť pohybu a zoomu',wb:'Vyváženie bielej',warmer:'Teplejšie −100K',cooler:'Studenšie +100K',
-  wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',
+  wbNames:['Auto','Denné','Žiarivka','Žiarovka','Zamračené'],wbMode:'režim {n}',language:'Jazyk',status:'Stav pripojenia',ipCam:'IP kamery {n}',cameras:'Kamery',trkSpeed:'Rýchlosť sledovania',trkKeep:'Podľa kamery (Custom)',trkS1:'Najpomalšie',trkS2:'Pomalé',trkS3:'Mierne',trkS4:'Rýchle',trkS5:'Najrýchlejšie',trkMixed:'Kamery majú rôzne rýchlosti, po uložení dostanú zvolenú.',trkNote:'Platí pre všetky kamery. „Podľa kamery“ nechá nastavenie z webového rozhrania kamery.',tabCam:'Kamery',tabSw:'Réžia',tabCtl:'Ovládanie',tabApp:'Aplikácia',about:'O aplikácii',chipCam:'Kamera {n}',chipSw:'Réžia',chipNoTally:'Bez tally',aboutVer:'Verzia {n}',aboutDev:'Zariadenie: {n}',browser:'prehliadač',
   useThird:'Používať tretiu kameru',invPan:'Obrátiť smer pan (vľavo/vpravo)',invTilt:'Obrátiť smer tilt (hore/dole)',guard:'Ochrana LIVE kamery',gOn:'Zapnúť ochranu',
   gWarn:'Upozorniť, že kamera je LIVE',gNopre:'Vypnúť presety pri LIVE',gLock:'Úplný zámok',expTools:'Kontrola expozície',tallySig:'Tally signalizácia',tNone:'Bez tally',
   bridgeNote:'Tally sa berie z programu PTZ Bridge, z ktorého je otvorená táto stránka. Typ a IP réžie nastavíš v ňom.',bridgeAddr:'Adresa počítača s programom PTZ Bridge',swIp:'IP adresa réžie',swIpVmix:'IP adresa počítača s vMixom',swIpBad:'Zadaj platnú IP adresu réžie, napríklad 192.168.10.240.',
@@ -348,10 +371,10 @@ const I18N={
   rCamNoVid:'Kamera {n}: ovládanie ide, obraz nie',rCamNoVidCodec:'Tento prehliadač nevie zobraziť obraz (H.265).',rCamNoVidSecure:'Prehliadač púšťa dekodér videa len na zabezpečenej adrese. Na tomto počítači otvor http://localhost:8080.',rCamNoVidAndroid:'Chrome púšťa dekodér videa len na zabezpečenej adrese. Otvor chrome://flags/#unsafely-treat-insecure-origin-as-secure, vlož {n}, zapni Enabled a daj Relaunch.',
   rCamNoVidBusy:'Kamera púšťa náhľad len jednému zariadeniu – zatvor jej Web UI alebo iný tablet.',rCamNoApi:'Kamera {n}: obraz ide, ovládanie nie',rCamNoApiD:'Ovládanie na {p} neodpovedá.',rCamConn:'Kamera {n}: pripájam…',allOk:'Všetko pripojené'},
  en:{cam:'Camera {n}',toButtons:'Switch to buttons',toJoy:'Switch to joystick',tabCtl:'Control',tabImg:'Image',settings:'Settings',
-  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',tbPgm:'● CAMERA IS LIVE',tbPvw:'CAMERA IN PREVIEW',gp:'Gamepad',gpOn:'Use a gamepad',gpNone:'🎮 no gamepad – press any button on it',gpHelp:'A B X Y = presets · left stick = pan/tilt · LT / RT or right stick ↑ ↓ = zoom · right stick ← → = speed · hold A B X Y = save preset · LB / RB = camera · D-pad ← → = exposure − / + · D-pad ↑ = AF, ↓ = MF · right stick click = focus',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
+  presets:'Presets',presetsHint:'hold to save',exposure:'Exposure',aeAuto:'Auto',aeMan:'Manual',tbPgm:'● CAMERA IS LIVE',tbPvw:'CAMERA IN PREVIEW',gp:'Gamepad',gpOn:'Use a gamepad',gpNone:'🎮 no gamepad – press any button on it',gpHelp:'A B X Y = presets · left stick = pan/tilt · LT / RT or right stick ↑ ↓ = zoom · right stick ← → = speed · hold A B X Y = save preset · LB / RB = camera · D-pad ← → = exposure − / + · D-pad ↑ = AF-C, ↓ = MF · right stick click = AF-S',upd:'Updates',updOn:'Check for updates (once a day, notify only)',updCur:'You have version {n}',updNew:'New version {n}',updSkipped:'Version {n} skipped',updNone:'You are up to date',updChecking:'Checking…',updOffline:'Cannot check, no internet?',updOff:'Checking is off',updNow:'Check now',updGo:'Update',updSkip:'Skip this version',updBridge:'Update PTZ Bridge on the computer this controller is opened from.',updDl:'Downloading update… {n}',updPerm:'Allow PTZ OBSBOT Controller to install apps, come back and tap Update again.',updConfirm:'Confirm the update in the Android dialog.',updErr:'Update failed: {n}',
   tracking:'Tracking',trk1:'1 person',trkG:'Group',trkOff:'Stop tracking',focus:'Focus',fOne:'Focus once',fOneTitle:'Focus once and hold',
   near:'− Near',far:'Far +',afOnce:'AF once',speed:'Pan, tilt & zoom speed',wb:'White balance',warmer:'Warmer −100K',cooler:'Cooler +100K',
-  wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',
+  wbNames:['Auto','Daylight','Fluorescent','Tungsten','Cloudy'],wbMode:'mode {n}',language:'Language',status:'Connection status',ipCam:'Camera {n} IP',cameras:'Cameras',trkSpeed:'Tracking speed',trkKeep:'Keep camera setting (Custom)',trkS1:'Super Lazy',trkS2:'Lazy',trkS3:'Slow',trkS4:'Fast',trkS5:'Crazy',trkMixed:'The cameras have different speeds; saving applies the selected one.',trkNote:'Applies to all cameras. “Keep camera setting” leaves the value set in the camera web interface.',tabCam:'Cameras',tabSw:'Switcher',tabCtl:'Controls',tabApp:'App',about:'About',chipCam:'Camera {n}',chipSw:'Switcher',chipNoTally:'No tally',aboutVer:'Version {n}',aboutDev:'Device: {n}',browser:'browser',
   useThird:'Use a third camera',invPan:'Invert pan (left/right)',invTilt:'Invert tilt (up/down)',guard:'On-air protection',gOn:'Enable protection',
   gWarn:'Warn that the camera is LIVE',gNopre:'Disable presets while LIVE',gLock:'Full lock',expTools:'Exposure tools',tallySig:'Tally',tNone:'No tally',
   bridgeNote:'Tally comes from PTZ Bridge, which serves this page. Set the switcher type and IP there.',bridgeAddr:'Address of the computer running PTZ Bridge',swIp:'Switcher IP address',swIpVmix:'IP address of the vMix computer',swIpBad:'Enter a valid switcher IP address, for example 192.168.10.240.',
@@ -377,7 +400,7 @@ function applyI18n(){document.documentElement.lang=LANG;
 function setLang(l){LANG=l;store.set('lang',l);applyI18n();try{renderGp()}catch(e){}try{renderUpd()}catch(e){}
   if(typeof setCtlMode==='function')setCtlMode(ctl.classList.contains('btns'));
   if(typeof renderImg==='function')renderImg();if(typeof renderGuard==='function')renderGuard();if(typeof renderStatus==='function')renderStatus();
-  if($('#settings').style.display==='flex')$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')})}
+  if($('#settings').style.display==='flex')$('#codecInfo').textContent='PTZ OBSBOT Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')})}
 $$('#langRow button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 applyI18n();
 
@@ -473,10 +496,11 @@ function analyze(v){
 }
 function drawHist(v,bins,total){
   const c=v.hctx,w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);
-  c.fillStyle='rgba(5,7,10,.78)';c.beginPath();c.roundRect(0,0,w,h,14);c.fill();c.fillStyle='rgba(255,255,255,.12)';for(const q of [.25,.5,.75])c.fillRect(8+q*(w-16),8,1,h-16);
+  c.fillStyle='rgba(5,7,10,.78)';c.beginPath();c.roundRect(0,0,w,h,14);c.fill();
   let max=0;for(let i=1;i<63;i++)max=Math.max(max,bins[i]);max=Math.max(max,1);
   const pad=8,bw=(w-pad*2)/64;c.fillStyle='rgba(244,246,248,.85)';
   for(let i=0;i<64;i++){const bh=Math.min(1,bins[i]/max)*(h-pad*2);c.fillRect(pad+i*bw,h-pad-bh,Math.ceil(bw),bh)}
+  for(const q of [.25,.5,.75]){c.fillStyle=q===.5?'rgba(255,255,255,.3)':'rgba(255,255,255,.22)';c.fillRect(Math.round(pad+q*(w-pad*2)),pad,1,h-pad*2)}
   // clipping warnings: >1.5 % of pixels in the extreme bin
   const lo=bins[0]/total,hi=bins[63]/total;
   if(hi>0.015){c.fillStyle='#FF3A30';c.fillRect(w-pad-4,pad,4,h-pad*2)}
@@ -618,12 +642,10 @@ $('#evm').onclick=()=>evStep(-1);$('#evp').onclick=()=>evStep(1);
 // focus: AF (continuous) / MF with stepping; "Zaostriť" = single autofocus (AF-S) and hold
 const FSTEP=2,FMIN=1,FMAX=100;let fT=null;
 function renderFocus(){const s=img[active];const f=s&&s.focus;
-  $$('.fm').forEach(b=>b.classList.toggle('on',!!f&&(b.dataset.f==='mf'?f.focus_mode==='mf':f.focus_mode!=='mf')));
-  $('#fOne').classList.toggle('on',!!f&&f.focus_mode==='afs');
-  $('#fv').textContent=!f?'–':f.focus_mode==='mf'?'MF '+f.focus_position:f.focus_mode==='afs'?tr('afOnce'):'AF'}
+  $$('.fm').forEach(b=>b.classList.toggle('on',!!f&&b.dataset.f===(f.focus_mode==='mf'||f.focus_mode==='afs'?f.focus_mode:'afc')));
+  $('#fv').textContent=!f?'–':f.focus_mode==='mf'?'MF '+f.focus_position:f.focus_mode==='afs'?'AF-S':'AF-C'}
 async function setFocus(ch){const s=img[active];if(!s||!s.focus)return;Object.assign(s.focus,ch);renderFocus();await api(active,'POST','image_af',s.focus)}
 $$('.fm').forEach(b=>b.onclick=()=>setFocus({focus_mode:b.dataset.f}));
-$('#fOne').onclick=async()=>{await setFocus({focus_mode:'afs'});setTimeout(()=>loadImg(active),1500)};
 function focusStep(d){const s=img[active];if(!s||!s.focus)return;const f=s.focus;
   const v=Math.min(FMAX,Math.max(FMIN,(f.focus_position||50)+d*FSTEP));
   if(v===f.focus_position&&f.focus_mode==='mf')return;setFocus({focus_mode:'mf',focus_position:v})}
@@ -651,7 +673,7 @@ window.setTally=setTally;
 
 // ---------- LIVE guard ----------
 cfg.guard=store.get('guard',{on:true,mode:'warn'});
-const G_MOVE='#joy,#pad button,#zin,#zout',G_PRE='.pre',G_IMG='.ai,#aeT,#evm,#evp,.fm,#fOne,#fm1,#fp1,.wbm,.wbk,#wbm,#wbp';
+const G_MOVE='#joy,#pad button,#zin,#zout',G_PRE='.pre',G_IMG='.ai,#aeT,#evm,#evp,.fm,#fm1,#fp1,.wbm,.wbk,#wbm,#wbp';
 const isLive=()=>camEls[active]&&camEls[active].classList.contains('pgm');
 function blockedKinds(){if(!cfg.guard.on||!isLive())return[];return cfg.guard.mode==='lock'?['move','pre','img']:cfg.guard.mode==='nopre'?['pre']:[]}
 function kindOf(t){return t.closest(G_MOVE)?'move':t.closest(G_PRE)?'pre':t.closest(G_IMG)?'img':null}
@@ -725,6 +747,7 @@ function statusRows(){
     else if(j.connected)rows.push({l:'ok',t:tr('rSwOk',{n:j.model||swName(cfg.tally.mode)}),d:''});
     else rows.push({l:'bad',t:tr('rSwBad'),d:(LANG==='sk'&&BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.error)||tr('rSwBadD')});
   }
+  rows.forEach(r=>r.k='sw');
   views.forEach((v,i)=>{
     const h=health[i],ip=cfg.ips[i],video=Date.now()-v.lastFrame<3000;
     if(h.api===false&&!video)rows.push({l:'bad',t:tr('rCamDown',{n:i+1}),d:tr('rCamDownD',{p:ip})});
@@ -732,19 +755,33 @@ function statusRows(){
     else if(h.api&&!video)rows.push({l:'warn',t:tr('rCamNoVid',{n:i+1}),d:!CODEC?(window.isSecureContext?tr('rCamNoVidCodec'):/Android/i.test(navigator.userAgent)?tr('rCamNoVidAndroid',{n:location.origin}):tr('rCamNoVidSecure')):tr('rCamNoVidBusy')});
     else if(!h.api&&video)rows.push({l:'warn',t:tr('rCamNoApi',{n:i+1}),d:tr('rCamNoApiD',{p:ip})});
     else rows.push({l:'',t:tr('rCamConn',{n:i+1}),d:ip});
+    rows[rows.length-1].k=i;
   });
   return rows;
 }
+const LVL=a=>a.reduce((w,r)=>LV[r.l]>LV[w]?r.l:w,'ok');
+function setTab(k){if(!$('.stabs [data-tab="'+k+'"]'))k='cam';store.set('setTab',k);
+  $$('.stabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===k));$$('.spane').forEach(p=>p.classList.toggle('on',p.dataset.pane===k));$('#settings .sgrid').scrollTop=0}
+$$('.stabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function renderStrip(rows){
+  const sw=rows.filter(r=>r.k==='sw'),chips=[];
+  views.forEach((_,i)=>{const c=rows.filter(r=>r.k===i);chips.push({tab:'cam',l:c.length?LVL(c):'',t:tr('chipCam',{n:i+1})})});
+  chips.push(cfg.tally.mode==='none'?{tab:'sw',l:'',t:tr('chipNoTally')}:{tab:'sw',l:sw.length?LVL(sw):'',t:tr('chipSw')});
+  $('#sstrip').innerHTML=chips.map(c=>`<button type="button" data-tab="${c.tab}"><i class="${c.l}"></i>${c.t}</button>`).join('');
+  $$('#sstrip button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+  const bad={cam:chips.some(c=>c.tab==='cam'&&c.l==='bad'),sw:chips.some(c=>c.tab==='sw'&&c.l==='bad')};
+  $$('.stabs button').forEach(b=>{const k=b.dataset.tab;const has=!!b.querySelector('i');if(bad[k]&&!has)b.insertAdjacentHTML('beforeend','<i></i>');if(!bad[k]&&has)b.querySelector('i').remove()})}
+let lastWorst=null;
 function renderStatus(){
   const rows=statusRows();
-  if($('#settings').style.display==='flex')$('#stat').innerHTML=rows.map(r=>`<i class="${r.l}"></i><b>${r.t}</b>${r.d?`<small>${r.d}</small>`:''}`).join('');
-  const worst=rows.reduce((a,r)=>LV[r.l]>LV[a.l]?r:a,{l:'ok'});
+  if($('#settings').style.display==='flex'){const html=a=>a.map(r=>`<i class="${r.l}"></i><b>${r.t}</b>${r.d?`<small>${r.d}</small>`:''}`).join('');$('#stat').innerHTML=html(rows.filter(r=>r.k!=='sw'));$('#statSw').innerHTML=html(rows.filter(r=>r.k==='sw'));renderStrip(rows)}
+  const worst=rows.reduce((a,r)=>LV[r.l]>LV[a.l]?r:a,{l:'ok'});lastWorst=worst;
   const d=$('#tdot');d.className=worst.l==='ok'?'ok':worst.l;
   d.querySelector('span').textContent=worst.l==='ok'?tr('allOk'):worst.t;
 }
 setInterval(renderStatus,1000);
 setInterval(()=>{views.forEach((_,i)=>pingCam(i));pollBridge()},3000);
-$('#tdot').onclick=()=>{openSet();$('#stat').scrollIntoView({block:'start'})};
+$('#tdot').onclick=()=>{openSet();setTab(lastWorst&&lastWorst.k==='sw'?'sw':'cam')};
 
 // source lists; numbers = input numbers reported by the bridge in /tally
 const TALLY_SRC={
@@ -761,7 +798,13 @@ function renderTallyForm(mode,inputs){setMode=mode;$('#bridgeNote').hidden=!SAME
 $$('#tMode button').forEach(b=>b.onclick=()=>renderTallyForm(b.dataset.m,[0,1,2].map(i=>+$('#tIn'+i).value||cfg.tally.inputs[i])));
 
 // settings
-function openSet(){$('#gOn').checked=cfg.guard.on;$('#gMode').value=cfg.guard.mode;$('#gMode').disabled=!cfg.guard.on;$('#tUrl').value=(cfg.tally.bridge||'').replace(/^https?:\/\//,'');if(EMB)$('#tSwIp').value=(BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.ip)||'';renderTallyForm(cfg.tally.mode,cfg.tally.inputs);$('#ip0').value=cfg.ips[0];$('#ip1').value=cfg.ips[1];$('#ip2').value=cfg.ips[2];$('#three').checked=cfg.three;document.body.classList.toggle('three',cfg.three);$('#invPan').checked=cfg.invPan;$('#invTilt').checked=cfg.invTilt;$('#codecInfo').textContent='PTZ Controller '+APP_VERSION+' · '+tr('codec',{n:CODEC||tr('codecNo')});$('#settings').style.display='flex';renderStatus()}
+function openSet(){$('#gOn').checked=cfg.guard.on;$('#gMode').value=cfg.guard.mode;$('#gMode').disabled=!cfg.guard.on;$('#tUrl').value=(cfg.tally.bridge||'').replace(/^https?:\/\//,'');if(EMB)$('#tSwIp').value=(BRIDGE&&BRIDGE.switcher&&BRIDGE.switcher.ip)||'';renderTallyForm(cfg.tally.mode,cfg.tally.inputs);$('#ip0').value=cfg.ips[0];$('#ip1').value=cfg.ips[1];$('#ip2').value=cfg.ips[2];$('#three').checked=cfg.three;document.body.classList.toggle('three',cfg.three);$('#invPan').checked=cfg.invPan;$('#invTilt').checked=cfg.invTilt;$('#codecInfo').textContent='';$('#aboutInfo').innerHTML='PTZ OBSBOT Controller · '+tr('aboutVer',{n:APP_VERSION})+'<small>'+tr('codec',{n:CODEC||tr('codecNo')})+'</small><small>'+tr('aboutDev',{n:EMB?'Android':(/Android/i.test(navigator.userAgent)?'Android · '+tr('browser'):tr('browser'))})+'</small>';$('#settings').style.display='flex';setTab(store.get('setTab','cam'));renderStatus();loadTrk()}
+const TRK=['superLazy','lazy','slow','fast','crazy'];let trkLoaded=null;
+async function loadTrk(){const sel=$('#trkSel');$('#trkNote').textContent=tr('trkNote');trkLoaded=null;
+  const vals=(await Promise.all(views.map((_,i)=>api(i,'GET','ai/trackspeed').catch(()=>null)))).map(j=>j&&j.speed).filter(Boolean);
+  if(!vals.length){sel.value='';return}const v=vals[0];sel.value=TRK.includes(v)?v:'';trkLoaded=sel.value;
+  if(vals.some(x=>x!==v))$('#trkNote').textContent=tr('trkMixed')+' '+tr('trkNote')}
+async function saveTrk(){const v=$('#trkSel').value;if(!v||v===trkLoaded)return;await Promise.all(views.map((_,i)=>api(i,'PUT','ai/trackspeed',{speed:v}).catch(()=>null)));trkLoaded=v}
 $('#setBtn').onclick=openSet;$('#closeSet').onclick=()=>$('#settings').style.display='none';
 $('#gOn').onchange=()=>{$('#gMode').disabled=!$('#gOn').checked};
 $('#three').onchange=()=>document.body.classList.toggle('three',$('#three').checked);
@@ -770,7 +813,7 @@ $('#saveSet').onclick=async()=>{
   if(EMB){const ip=$('#tSwIp').value.trim();
     if(setMode!=='none'&&!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){$('#swIpErr').textContent=tr('swIpBad');$('#swIpErr').hidden=false;$('#tSwIp').focus();return}
     try{const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:setMode,ip})});const j=await r.json();if(j&&j.app)BRIDGE=j}catch(e){}}
-  cfg.guard={on:$('#gOn').checked,mode:$('#gMode').value};store.set('guard',cfg.guard);renderGuard();cfg.ips=[0,1,2].map(i=>$('#ip'+i).value.trim());const threeNew=$('#three').checked;cfg.invPan=$('#invPan').checked;cfg.invTilt=$('#invTilt').checked;
+  saveTrk();cfg.guard={on:$('#gOn').checked,mode:$('#gMode').value};store.set('guard',cfg.guard);renderGuard();cfg.ips=[0,1,2].map(i=>$('#ip'+i).value.trim());const threeNew=$('#three').checked;cfg.invPan=$('#invPan').checked;cfg.invTilt=$('#invTilt').checked;
   store.set('ips',cfg.ips);store.set('invPan',cfg.invPan);store.set('invTilt',cfg.invTilt);
   if(!SAME)cfg.tally.bridge=normBridge($('#tUrl').value);
   cfg.tally.mode=setMode;if(setMode!=='none')cfg.tally.inputs=[0,1,2].map(i=>+$('#tIn'+i).value||i+1);store.set('tally',cfg.tally);
@@ -897,7 +940,7 @@ function gpLoop(){
   if(edge(GP_BTN.LEFT)&&gpAllowed('img')){evStep(-1);gpFlash('#evm')}
   if(edge(GP_BTN.UP)&&gpAllowed('img')){setFocus({focus_mode:'afc'});gpFlash('.fm[data-f="afc"]')}
   if(edge(GP_BTN.DOWN)&&gpAllowed('img')){setFocus({focus_mode:'mf'});gpFlash('.fm[data-f="mf"]')}
-  if(edge(GP_BTN.RS)&&gpAllowed('img')){$('#fOne').click();gpFlash('#fOne')}
+  if(edge(GP_BTN.RS)&&gpAllowed('img')){setFocus({focus_mode:'afs'});gpFlash('.fm[data-f="afs"]')}
   gpPrev=p.buttons.map(b=>b.pressed);
 }
 renderGp();requestAnimationFrame(gpLoop);

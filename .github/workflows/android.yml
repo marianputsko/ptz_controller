@@ -184,7 +184,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.9.${{ github.run_number }}
-          name: PTZ Controller 0.9.${{ github.run_number }}
+          name: PTZ OBSBOT Controller 0.9.${{ github.run_number }}
           make_latest: true
           files: |
             PTZ-Controller.apk
