@@ -868,7 +868,8 @@ $('#updGo').onclick=()=>{
   if(window.PTZApp&&PTZApp.installUpdate){updNote=tr('updDl',{n:''});renderUpd();PTZApp.installUpdate('https://github.com/'+UPD_REPO+'/releases/download/v'+upd.latest+'/PTZ-Controller.apk');return}
   if(SAME&&!EMB){updNote=tr('updBridge');renderUpd();return}
   window.open('https://github.com/'+UPD_REPO+'/releases/latest/download/ptz.html','_blank')};
-renderUpd();setTimeout(()=>checkUpd(false),5000);
+const PLAY=!!(window.PTZApp&&PTZApp.store&&PTZApp.store()==='play'); // Google Play updates the app itself
+if(PLAY)$('#updBox').style.display='none';else{renderUpd();setTimeout(()=>checkUpd(false),5000)}
 
 // ---- gamepad: any controller Android/Chrome exposes with the standard (Xbox-like) layout ----
 cfg.gamepad=store.get('gamepad',false);

@@ -36,8 +36,11 @@ public final class Updater {
         try { return activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
     }
 
+    /** "github" or "play" – the Play build leaves updates to Google Play. */
+    @JavascriptInterface public String store() { return BuildConfig.STORE; }
+
     @JavascriptInterface public void installUpdate(final String url) {
-        if (busy) return;
+        if (busy || "play".equals(BuildConfig.STORE)) return;
         if (url == null || !url.startsWith("https://github.com/marianputsko/ptz_controller/")) { status("error", "bad url"); return; }
         if (!activity.getPackageManager().canRequestPackageInstalls()) {
             status("perm", "");

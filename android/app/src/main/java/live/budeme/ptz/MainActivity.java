@@ -63,6 +63,14 @@ public class MainActivity extends Activity {
         gamepad = new GamepadBridge(web);
         web.addJavascriptInterface(updater, "PTZApp");
         setContentView(web);
+        if (Build.VERSION.SDK_INT >= 30) {
+            // Target 35+ draws edge-to-edge: lift the page above the on-screen keyboard ourselves.
+            web.setOnApplyWindowInsetsListener((v, insets) -> {
+                int ime = insets.getInsets(WindowInsets.Type.ime()).bottom;
+                v.setPadding(0, 0, 0, ime);
+                return insets;
+            });
+        }
         hideBars();
         if (state != null) web.restoreState(state);
         else web.loadUrl("http://127.0.0.1:" + PORT + "/");

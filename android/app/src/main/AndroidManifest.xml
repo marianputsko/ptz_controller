@@ -15,6 +15,9 @@
         android:hardwareAccelerated="true"
         android:allowBackup="false">
 
+        <!-- Android 16 ignores the orientation lock on tablets unless the app opts out (target 36). -->
+        <property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" android:value="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -30,7 +30,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
       - name: Copy controller page into the app
         run: |
           mkdir -p android/app/src/main/assets/www
@@ -48,15 +48,24 @@ jobs:
         env:
           PTZ_KEYSTORE_PASSWORD: ${{ secrets.PTZ_KEYSTORE_PASSWORD }}
         run: |
-          gradle --no-daemon assembleRelease
+          gradle --no-daemon assembleGithubRelease bundlePlayRelease
           SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
-          "$SIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | tee signer.txt | grep -i "SHA-256"
+          "$SIGNER" verify --print-certs app/build/outputs/apk/github/release/app-github-release.apk | tee signer.txt | grep -i "SHA-256"
           grep -qi "5e2e4bc5bc6c6023f483a9069f3518048d08692228b2a38a0b69b6e8beabd1a1" signer.txt
-      - run: cp android/app/build/outputs/apk/release/app-release.apk PTZ-Controller.apk
+      - run: |
+          cp android/app/build/outputs/apk/github/release/app-github-release.apk PTZ-Controller.apk
+          cp android/app/build/outputs/bundle/playRelease/app-play-release.aab PTZ-Controller-GooglePlay.aab
+          jarsigner -verify PTZ-Controller-GooglePlay.aab | grep -q "jar verified"
+          ! unzip -p PTZ-Controller-GooglePlay.aab base/manifest/AndroidManifest.xml | strings | grep -q REQUEST_INSTALL_PACKAGES
       - uses: actions/upload-artifact@v4
         with:
           name: android
           path: PTZ-Controller.apk
+      # Google Play bundle: download it from the run's artifacts, it is not attached to the GitHub release.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: google-play
+          path: PTZ-Controller-GooglePlay.aab
 
   mac:
     runs-on: macos-latest

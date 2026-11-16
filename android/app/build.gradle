@@ -6,12 +6,12 @@ def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
 
 android {
     namespace 'live.budeme.ptz'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'live.budeme.ptz'
         minSdk 29
-        targetSdk 34
+        targetSdk 36
         versionCode runNumber
         versionName "0.9.${runNumber}"
     }
@@ -32,6 +32,15 @@ android {
                 keyPassword ksPass
             }
         }
+    }
+
+    buildFeatures { buildConfig true }
+
+    // github = APK released on GitHub (can update itself); play = AAB for Google Play (Play handles updates)
+    flavorDimensions 'store'
+    productFlavors {
+        github { dimension 'store'; buildConfigField 'String', 'STORE', '"github"' }
+        play   { dimension 'store'; buildConfigField 'String', 'STORE', '"play"' }
     }
 
     buildTypes {
