@@ -200,8 +200,10 @@ jobs:
             PTZ-Bridge-mac.dmg
             PTZ-Bridge.exe
             ptz.html
+            PTZ-Controller-GooglePlay.aab
           body: |
             **PTZ-Controller.apk** – Android aplikácia pre tablet, kamery aj tally pripojí priamo.
             **PTZ-Bridge-mac.dmg** – PTZ Bridge pre macOS 12+ (Apple silicon aj Intel), tally pre HTML ovládač.
             **PTZ-Bridge.exe** – PTZ Bridge pre Windows 10/11, tally pre HTML ovládač.
             **ptz.html** – ovládač ako jeden súbor pre Chrome.
+            **PTZ-Controller-GooglePlay.aab** – balík pre Google Play (na inštaláciu použi APK).
